@@ -12280,6 +12280,11 @@ case $host_os in
   ;;
   *darwin*)
   case $host_cpu in
+     *arm64*|*aarch64*)
+     CFLAGS="-arch arm64 ${CFLAGS}"
+     CXXFLAGS="-arch arm64 ${CXXFLAGS}"
+     LDFLAGS="-arch arm64 ${LDFLAGS}"
+     ;;
      *x86_64*|*amd64*)
      CFLAGS="-arch x86_64 ${CFLAGS}"
      CXXFLAGS="-arch x86_64 ${CXXFLAGS}"

@@ -28,6 +28,9 @@ case $HOST_OS in
   ;;
   *darwin*)
     case $HOST_OS in
+      *arm*)
+      OPENSSL_CONFIG=darwin64-arm64-cc
+      ;;
       *x86_64*)
       OPENSSL_CONFIG=darwin64-x86_64-cc
       ;;

@@ -152,7 +152,7 @@ namespace io { namespace humble { namespace video
     /**
      * Divides a by b.
      * @param a The first number.
-     * @parma b The second number.
+     * @param b The second number.
      * @return a/b.
      */
     static Rational* sDivide(Rational *a, Rational* b);
@@ -166,7 +166,7 @@ namespace io { namespace humble { namespace video
     /**
      * Subtracts a from b.
      * @param a The first number.
-     * @parma b The second number.
+     * @param b The second number.
      * @return a-b.
      */
     static Rational* sSubtract(Rational *a, Rational* b);
@@ -180,7 +180,7 @@ namespace io { namespace humble { namespace video
     /**
      * Adds a to b.
      * @param a The first number.
-     * @parma b The second number.
+     * @param b The second number.
      * @return a+b.
      */
     static Rational* sAdd(Rational *a, Rational* b);

@@ -228,7 +228,7 @@ Encoder::open(KeyValueBag * inputOptions, KeyValueBag* unsetOptions) {
             getChannelLayout(), getSampleFormat());
 
       }
-      VS_LOG_TRACE("open Encoder@%p[t=AUDIO;sr=%"PRId32";c:%"PRId32";cl:%"PRId32";f=%"PRId32";]",
+      VS_LOG_TRACE("open Encoder@%p[t=AUDIO;sr=%" PRId32 ";c:%" PRId32 ";cl:%" PRId32 ";f=%" PRId32 ";]",
                    this,
                    (int32_t)getSampleRate(),
                    (int32_t)getChannels(),
@@ -238,7 +238,7 @@ Encoder::open(KeyValueBag * inputOptions, KeyValueBag* unsetOptions) {
     }
     break;
     case MediaDescriptor::MEDIA_VIDEO: {
-      VS_LOG_TRACE("open Encoder@%p[t=VIDEO;d=%"PRId32"x%"PRId32";f:%"PRId32";]",
+      VS_LOG_TRACE("open Encoder@%p[t=VIDEO;d=%" PRId32 "x%" PRId32 ";f:%" PRId32 ";]",
                    this,
                    (int32_t)getWidth(),
                    (int32_t)getHeight(),

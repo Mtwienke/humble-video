@@ -84,6 +84,7 @@ namespace io { namespace humble { namespace video {
     AVBitStreamFilter* f = 0;
     int32_t i = 0;
     while ((f = av_bitstream_filter_next(f)) != 0) {
+      (void)i;
       if (strcmp(name, f->name)==0) {
         VS_LOG_TRACE("Found filter \"%s\" at position %d",
                      f->name,

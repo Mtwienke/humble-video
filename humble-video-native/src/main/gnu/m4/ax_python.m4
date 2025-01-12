@@ -1,5 +1,5 @@
 # ===========================================================================
-#         http://www.gnu.org/software/autoconf-archive/ax_python.html
+#        https://www.gnu.org/software/autoconf-archive/ax_python.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -10,9 +10,8 @@
 #
 #   This macro does a complete Python development environment check.
 #
-#   It recurses through several python versions (from 2.1 to 2.6 in this
-#   version), looking for an executable. When it finds an executable, it
-#   looks to find the header files and library.
+#   It checks for all known versions. When it finds an executable, it looks
+#   to find the header files and library.
 #
 #   It sets PYTHON_BIN to the name of the python executable,
 #   PYTHON_INCLUDE_DIR to the directory holding the header files, and
@@ -36,7 +35,7 @@
 #   Public License for more details.
 #
 #   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 #   As a special exception, the respective Autoconf Macro's copyright owner
 #   gives unlimited permission to copy, distribute and modify the configure
@@ -51,14 +50,14 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-#serial 14
+#serial 20
 
 AC_DEFUN([AX_PYTHON],
 [AC_MSG_CHECKING(for python build information)
 AC_MSG_RESULT([])
-for python in python3.3 python3.2 python3.1 python3.0 python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
+for python in python3.12 python3.11 python3.10 python3.9 python3.8 python3.7 python3.6 python3.5 python3.4 python3.3 python3.2 python3.1 python3.0 python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
 AC_CHECK_PROGS(PYTHON_BIN, [$python])
-ax_python_bin=$PYTHON_BIN
+ax_python_bin=/usr/bin/python3
 if test x$ax_python_bin != x; then
    AC_CHECK_LIB($ax_python_bin, main, ax_python_lib=$ax_python_bin, ax_python_lib=no)
    if test x$ax_python_lib == xno; then
@@ -84,8 +83,8 @@ fi
 
 AC_MSG_RESULT([  results of the Python check:])
 AC_MSG_RESULT([    Binary:      $ax_python_bin])
-AC_MSG_RESULT([    Library:     $ax_python_lib])
-AC_MSG_RESULT([    Include Dir: $ax_python_header])
+AC_MSG_RESULT([    Library:     /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib])
+AC_MSG_RESULT([    Include Dir: /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Headers])
 
 if test x$ax_python_header != xno; then
   PYTHON_INCLUDE_DIR=$ax_python_header

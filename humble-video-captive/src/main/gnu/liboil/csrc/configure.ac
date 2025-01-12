@@ -179,8 +179,8 @@ if test x$HAVE_GCC_ASM = xyes -a x$HAVE_POWERPC = xyes ; then
   AS_COMPILER_FLAG(["-Wa,-mregnames"],
     [LIBOIL_CFLAGS="$LIBOIL_CFLAGS -Wa,-mregnames"],
     true)
-  AS_COMPILER_FLAG(["-force_cpusubtype_ALL"],
-    [LIBOIL_CFLAGS="$LIBOIL_CFLAGS -force_cpusubtype_ALL"],
+  AS_COMPILER_FLAG([""],
+    [LIBOIL_CFLAGS="$LIBOIL_CFLAGS"],
     true)
   AS_COMPILER_FLAG(["-fno-tree-vectorize"],
     [LIBOIL_CFLAGS="$LIBOIL_CFLAGS -fno-tree-vectorize"],

@@ -17335,11 +17335,9 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 echo "${ECHO_T}$flag_ok" >&6; }
 
 
-  { echo "$as_me:$LINENO: checking to see if compiler understands \"-force_cpusubtype_ALL\"" >&5
-echo $ECHO_N "checking to see if compiler understands \"-force_cpusubtype_ALL\"... $ECHO_C" >&6; }
 
   save_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS "-force_cpusubtype_ALL""
+  CFLAGS="$CFLAGS """
 
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
@@ -17385,7 +17383,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   CFLAGS="$save_CFLAGS"
 
   if test "X$flag_ok" = Xyes ; then
-    LIBOIL_CFLAGS="$LIBOIL_CFLAGS -force_cpusubtype_ALL"
+    LIBOIL_CFLAGS="$LIBOIL_CFLAGS"
     true
   else
     true

@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="/usr/local"
+exec_prefix="${prefix}"
+HOST_TYPE=Mac
+HOST_OS=arm-apple-darwin23.6.0
+
+if [ "" = "1" ]; then
+  CROSS="--host ${HOST_OS}"
+else
+  CROSS=
+fi
+
+# LIBRARY doesn't support VPATH builds, so we fake it
+echo "Copying /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc to /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc"
+# create the directory
+mkdir -p /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc
+# copy over all the source
+cp -r /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc/* /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc/
+# and make everything user writeable so distcheck will pass
+chmod -R u+w /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc/*
+
+# apply all the patches
+echo "Applying patches to /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc/src"
+(cd /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc/src && for f in /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/patches/*; do echo "patch -p1 <$f"; patch -p1 <$f; done)
+
+export PKG_CONFIG_PATH="${exec_prefix}/lib/pkgconfig"
+export PKG_CONFIG="pkg-config --static"
+
+CC="gcc" \
+CFLAGS="-O2 -I${prefix}/include -g -O2" \
+LD="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" \
+LDFLAGS="-L${exec_prefix}/lib " \
+CPP="gcc -E" \
+CPPFLAGS="" \
+CXX="g++" \
+CXXFLAGS="" \
+NM="/usr/bin/nm -B" \
+AS="as" \
+ASFLAGS="" \
+STRIP="strip" \
+RANLIB="ranlib" \
+AR="ar" \
+DLLTOOL="false" \
+PATH="$PATH:/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu${exec_prefix}/bin@" sh /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp/csrc/configure \
+  ${CROSS} \
+  --disable-shared \
+  --with-pic \
+  --prefix="${prefix}" || \
+  (echo "Could not configure library: \"/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/librtmp\"; you may want to try disabling it or installing your own version" && exit 1)

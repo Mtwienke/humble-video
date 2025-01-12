@@ -1,0 +1,66 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="/usr/local"
+HOST_OS="arm-apple-darwin23.6.0"
+CROSS_PREFIX=""
+
+# zlib does not support in-tree builds, and so we copy the entire source
+# directory to the build directory, and then build in place.
+echo "Copying /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc to /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc"
+# create the directory
+mkdir -p "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc"
+# copy over all the source
+cp -r "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc/"* "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc/"
+# and make everything user writeable so distcheck will pass
+chmod -R u+w "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc/"*
+
+# Check for 64 bit compiling
+FLAG64=
+case $HOST_OS in
+  *64*)
+    FLAG64="--64"
+  ;;
+esac
+
+prefix="/usr/local"
+exec_prefix="${prefix}"
+libdir="${exec_prefix}/lib"
+includedir="${prefix}/include"
+mandir="${prefix}/share/man"
+case $HOST_OS in
+  *mingw*)
+  # windows build requires special make instructions which will be done
+  # from Makefile.am
+  cp "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc/win32/Makefile.gcc" "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc/Makefile"
+  ;;
+  *)
+  CHOST="arm-apple-darwin23.6.0" \
+  CC="gcc" \
+  CFLAGS="-fPIC -I${prefix}/include -g -O2" \
+  LD="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" \
+  LDFLAGS="-fPIC -L${exec_prefix}/lib " \
+  CPP="gcc -E" \
+  CPPFLAGS="" \
+  CXX="g++" \
+  CXXFLAGS="" \
+  NM="/usr/bin/nm -B" \
+  AS="as" \
+  ASFLAGS="" \
+  STRIP="strip" \
+  RANLIB="ranlib" \
+  AR="ar" \
+  DLLTOOL="false" \
+  RC="windres" \
+  prefix="${prefix}" \
+  exec_prefix="${exec_prefix}" \
+  libdir="${libdir}" \
+  includedir="${includedir}" \
+  mandir="${mandir}" \
+  sh "/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib/csrc/configure" ${FLAG64} \
+    --static \
+    --prefix="${prefix}" || \
+    (echo "Could not configure library: \"/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/zlib\"; you may want to try disabling it or installing your own version" && exit 1)
+  ;;
+esac

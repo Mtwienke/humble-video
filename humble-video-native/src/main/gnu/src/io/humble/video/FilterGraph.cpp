@@ -90,7 +90,7 @@ FilterGraph::addAudioSource(const char* name, int32_t sampleRate,
   char args[512] = "";
 
   snprintf(args, sizeof(args),
-      "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%"PRIx64,
+      "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%" PRIx64,
       timeBase->getNumerator(), timeBase->getDenominator(), sampleRate,
       AudioFormat::getName(format), (int64_t) channelLayout);
 
@@ -180,7 +180,7 @@ FilterGraph::addAudioSink(const char* name, int32_t sampleRate,
   const int sampleRates[] =
       { sampleRate, -1 };
   const int64_t channels[] =
-      { channelLayout, -1 };
+      { static_cast<int64_t>(channelLayout), -1 };
   const enum AVSampleFormat sampleFormats[] =
       { (enum AVSampleFormat) format, (enum AVSampleFormat) -1 };
 

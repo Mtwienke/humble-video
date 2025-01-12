@@ -506,7 +506,7 @@ EncoderTest::testTranscode()
           )
       {
         // we need a resampler.
-        VS_LOG_DEBUG("Resampling: [%"PRId32", %"PRId32", %"PRId32"] [%"PRId32", %"PRId32", %"PRId32"]",
+        VS_LOG_DEBUG("Resampling: [%" PRId32 ", %" PRId32 ", %" PRId32 "] [%" PRId32 ", %" PRId32 ", %" PRId32 "]",
                      (int32_t)output->encoder->getChannelLayout(),
                      (int32_t)output->encoder->getSampleRate(),
                      (int32_t)output->encoder->getSampleFormat(),

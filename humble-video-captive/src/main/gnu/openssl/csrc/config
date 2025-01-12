@@ -250,6 +250,9 @@ case "${SYSTEM}:${RELEASE}:${VERSION}:${MACHINE}" in
 
     Darwin:*)
 	case "$MACHINE" in
+		arm*)
+		echo "arm64-apple-darwin${VERSION}"
+		;;
 	    Power*)
 		echo "ppc-apple-darwin${VERSION}"
 		;;

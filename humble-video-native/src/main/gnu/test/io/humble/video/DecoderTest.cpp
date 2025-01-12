@@ -392,7 +392,7 @@ DecoderTest::testIssue27()
           TS_ASSERT_DIFFERS(Global::NO_PTS, picture->getPacketDts());
           TS_ASSERT_DIFFERS(Global::NO_PTS, picture->getPacketPts());
           TS_ASSERT_DIFFERS(Global::NO_PTS, picture->getTimeStamp());
-          VS_LOG_DEBUG("Writing frame: %"PRId32, frameNo);
+          VS_LOG_DEBUG("Writing frame: %" PRId32, frameNo);
           writePicture("DecoderTest_testIssue27", &frameNo, picture.value());
           ++frameNo;
         }

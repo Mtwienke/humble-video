@@ -329,7 +329,7 @@ Muxer::addNewStream(Coder* aCoder) {
 
 
   // let's log the state of the world.
-  VS_LOG_TRACE("addNewStream Muxer@%p[i:%"PRId32";c:%p;tb:%"PRId32"/%"PRId32"]",
+  VS_LOG_TRACE("addNewStream Muxer@%p[i:%" PRId32 ";c:%p;tb:%" PRId32 "/%" PRId32 "]",
                this,
                (int32_t)avStream->index,
                coder.value(),
@@ -390,7 +390,7 @@ Muxer::logOpen(Muxer* muxer) {
   char msg[4096];
   char* buf = msg;
   size_t bufSize = sizeof(msg);
-  int32_t chars = snprintf(buf, bufSize, "open Muxer@%p[u:%s;n:%"PRId32";", muxer,
+  int32_t chars = snprintf(buf, bufSize, "open Muxer@%p[u:%s;n:%" PRId32 ";", muxer,
                            muxer->getURL(),
                            (int32_t)n);
   buf += chars;
@@ -400,7 +400,7 @@ Muxer::logOpen(Muxer* muxer) {
     Container::Stream* s = ((Container*)muxer)->getStream(i);
     RefPointer<Coder> c = s->getCoder();
     AVStream* avStream = s->getCtx();
-    chars = snprintf(buf, bufSize, "s@%"PRId32"[c:%p;tb:%"PRId32"/%"PRId32"];",
+    chars = snprintf(buf, bufSize, "s@%" PRId32 "[c:%p;tb:%" PRId32 "/%" PRId32 "];",
            (int32_t)i,
            c.value(),
            (int32_t)avStream->time_base.num,

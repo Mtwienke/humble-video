@@ -382,7 +382,7 @@ public:
    * @param numSamples The number of samples of audio that will be placed in this MediaAudio object.
    * @param sampleRate The sample rate (per second) of this audio.
    * @param channels The number of channels of audio that will be placed in this MediaAudio object.
-   * @paray channelLayout The channel layout of audio that will be placed in this MediaAudio object.
+   * @param channelLayout The channel layout of audio that will be placed in this MediaAudio object.
    * @param format The format of the audio placed in this MediaAudio object.
    * @return A MediaAudio object, or null on failure.
    */
@@ -402,7 +402,7 @@ public:
    * @param numSamples The number of samples of audio that will be placed in this MediaAudio object.
    * @param sampleRate The sample rate (per second) of this audio.
    * @param channels The number of channels of audio that will be placed in this MediaAudio object.
-   * @paray channelLayout The channel layout of audio that will be placed in this MediaAudio object.
+   * @param channelLayout The channel layout of audio that will be placed in this MediaAudio object.
    * @param format The format of the audio placed in this MediaAudio object.
    *
    * @return A MediaAudio object, or null on failure.

@@ -79,6 +79,24 @@
       </dependencies>
     </profile>
     <profile>
+      <id>Mac-ARM</id>
+      <!--  as of Humble Video 0.3.0 x86/i686 versions of MacOS X are no longer supported -->
+      <activation>
+        <property>
+          <name>!io.humble.debug</name>
+        </property>
+        <os>
+          <family>Mac</family>
+          <arch>arm64</arch>
+        </os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.humble</groupId>
+          <artifactId>humble-video-arch-arm64-apple-darwin18</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>    <profile>
       <id>Mac-x86_64</id>
       <!--  as of Humble Video 0.3.0 x86/i686 versions of MacOS X are no longer supported -->
       <activation>
@@ -224,6 +242,25 @@
         </dependency>
       </dependencies>
     </profile>
+    <profile>
+      <id>Mac-arm64-debug</id>
+      <!--  as of Humble Video 0.3.0 x86/i686 versions of MacOS X are no longer supported -->
+      <activation>
+        <property>
+          <name>io.humble.debug</name>
+        </property>
+        <os>
+          <family>Mac</family>
+          <arch>arm64</arch>
+        </os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.humble</groupId>
+          <artifactId>humble-video-arch-arm64-apple-darwin18-debug</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>    
     <profile>
       <id>Mac-x86_64-debug</id>
       <!--  as of Humble Video 0.3.0 x86/i686 versions of MacOS X are no longer supported -->

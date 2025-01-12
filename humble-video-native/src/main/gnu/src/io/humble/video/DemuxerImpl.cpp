@@ -482,7 +482,7 @@ DemuxerImpl::pause() {
 
 void
 DemuxerImpl::play() {
-  if (mState != STATE_PAUSED || mState != STATE_OPENED)
+  if (mState != STATE_PAUSED && mState != STATE_OPENED)
   {
     VS_THROW(HumbleRuntimeError("Can only play containers in OPENED or PAUSED states"));
   }
