@@ -41,12 +41,13 @@
 #include "math_approx.h"
 #include "os_support.h"
 
-#ifdef _USE_SSE
-#include "cb_search_sse.h"
-#elif defined(ARM4_ASM) || defined(ARM5E_ASM)
+#if defined(ARM4_ASM) || defined(ARM5E_ASM) || defined (__arm64) || true
+#undef _USE_SSE
 #include "cb_search_arm4.h"
 #elif defined(BFIN_ASM)
 #include "cb_search_bfin.h"
+#elif defined(_USE_SSE)
+#include "cb_search_sse.h"
 #endif
 
 #ifndef DISABLE_ENCODER

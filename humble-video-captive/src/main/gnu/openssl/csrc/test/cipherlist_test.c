@@ -1,7 +1,7 @@
 /*
- * Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
- * Licensed under the OpenSSL licenses, (the "License");
+ * Licensed under the Apache License 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  * https://www.openssl.org/source/license.html
@@ -197,8 +197,6 @@ static int execute_test(CIPHERLIST_TEST_FIXTURE *fixture)
 static int test_default_cipherlist_implicit(void)
 {
     SETUP_CIPHERLIST_TEST_FIXTURE();
-    if (fixture == NULL)
-        return 0;
     EXECUTE_CIPHERLIST_TEST();
     return result;
 }
@@ -206,12 +204,58 @@ static int test_default_cipherlist_implicit(void)
 static int test_default_cipherlist_explicit(void)
 {
     SETUP_CIPHERLIST_TEST_FIXTURE();
-    if (fixture == NULL)
-        return 0;
     if (!TEST_true(SSL_CTX_set_cipher_list(fixture->server, "DEFAULT"))
-            || !TEST_true(SSL_CTX_set_cipher_list(fixture->client, "DEFAULT")))
+            || !TEST_true(SSL_CTX_set_cipher_list(fixture->client, "DEFAULT"))) {
         tear_down(fixture);
+        fixture = NULL;
+    }
     EXECUTE_CIPHERLIST_TEST();
+    return result;
+}
+
+/* SSL_CTX_set_cipher_list() should fail if it clears all TLSv1.2 ciphers. */
+static int test_default_cipherlist_clear(void)
+{
+    SSL *s = NULL;
+    SETUP_CIPHERLIST_TEST_FIXTURE();
+
+    if (!TEST_int_eq(SSL_CTX_set_cipher_list(fixture->server, "no-such"), 0))
+        goto end;
+
+    if (!TEST_int_eq(ERR_GET_REASON(ERR_get_error()), SSL_R_NO_CIPHER_MATCH))
+        goto end;
+
+    s = SSL_new(fixture->client);
+
+    if (!TEST_ptr(s))
+      goto end;
+
+    if (!TEST_int_eq(SSL_set_cipher_list(s, "no-such"), 0))
+        goto end;
+
+    if (!TEST_int_eq(ERR_GET_REASON(ERR_get_error()),
+                SSL_R_NO_CIPHER_MATCH))
+        goto end;
+
+    result = 1;
+end:
+    SSL_free(s);
+    tear_down(fixture);
+    return result;
+}
+
+/* SSL_CTX_set_cipher_list matching with cipher standard name */
+static int test_stdname_cipherlist(void)
+{
+    SETUP_CIPHERLIST_TEST_FIXTURE();
+    if (!TEST_true(SSL_CTX_set_cipher_list(fixture->server, TLS1_RFC_RSA_WITH_AES_128_SHA))
+            || !TEST_true(SSL_CTX_set_cipher_list(fixture->client, TLS1_RFC_RSA_WITH_AES_128_SHA))) {
+        goto end;
+    }
+    result = 1;
+end:
+    tear_down(fixture);
+    fixture = NULL;
     return result;
 }
 
@@ -219,5 +263,7 @@ int setup_tests(void)
 {
     ADD_TEST(test_default_cipherlist_implicit);
     ADD_TEST(test_default_cipherlist_explicit);
+    ADD_TEST(test_default_cipherlist_clear);
+    ADD_TEST(test_stdname_cipherlist);
     return 1;
 }

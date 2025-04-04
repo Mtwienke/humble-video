@@ -93,7 +93,7 @@
       <dependencies>
         <dependency>
           <groupId>io.humble</groupId>
-          <artifactId>humble-video-arch-arm64-apple-darwin18</artifactId>
+          <artifactId>humble-video-arch-arm64-apple-darwin</artifactId>
         </dependency>
       </dependencies>
     </profile>    <profile>
@@ -257,7 +257,7 @@
       <dependencies>
         <dependency>
           <groupId>io.humble</groupId>
-          <artifactId>humble-video-arch-arm64-apple-darwin18-debug</artifactId>
+          <artifactId>humble-video-arch-arm64-apple-darwin-debug</artifactId>
         </dependency>
       </dependencies>
     </profile>    

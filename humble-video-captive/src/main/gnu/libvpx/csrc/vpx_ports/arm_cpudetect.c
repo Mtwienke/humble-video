@@ -147,37 +147,7 @@ int arm_cpu_caps(void) {
   }
   return flags & mask;
 }
-#elif defined(__arm64__)  /* end __linux__ */
-#include <stdio.h>
-
-int arm_cpu_caps(void) {
-  int flags = 0;
-  int mask = 0;
-  
-  // Print the initial values for debugging
-  printf("Initial flags: %d\n", flags);
-  printf("Initial mask: %d\n", mask);
-  
-  // You could add a platform-specific check to see if it's ARM64
-  // For macOS on ARM64, you can use the __arm64__ macro for example
-#ifdef __arm64__
-  printf("This is ARM64 architecture on macOS.\n");
-#endif
-  
-  // Continue with the rest of your code
-  if (!arm_cpu_env_flags(&flags)) {
-    return flags;
-  }
-  
-  mask = arm_cpu_env_mask();
-  
-  // Print updated values for debugging
-  printf("Updated flags: %d\n", flags);
-  printf("Updated mask: %d\n", mask);
-  
-  return flags & mask;
-}
-#else
+#else  /* end __linux__ */
 #error \
     "--enable-runtime-cpu-detect selected, but no CPU detection method " \
 "available for your platform. Reconfigure with --disable-runtime-cpu-detect."

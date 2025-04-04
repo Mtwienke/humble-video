@@ -1,49 +1,54 @@
 /*
- * Copyright 2000-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2000-2025 The OpenSSL Project Authors. All Rights Reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
-#ifdef OPENSSL_NO_ENGINE
-NON_EMPTY_TRANSLATION_UNIT
-#else
+/* We need to use some engine deprecated APIs */
+#define OPENSSL_SUPPRESS_DEPRECATED
 
-# include "apps.h"
-# include "progs.h"
-# include <stdio.h>
-# include <stdlib.h>
-# include <string.h>
-# include <openssl/err.h>
-# include <openssl/engine.h>
-# include <openssl/ssl.h>
-# include <openssl/store.h>
+#include <openssl/opensslconf.h>
+
+#include "apps.h"
+#include "progs.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/err.h>
+#include <openssl/engine.h>
+#include <openssl/ssl.h>
+#include <openssl/store.h>
 
 typedef enum OPTION_choice {
-    OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
+    OPT_COMMON,
     OPT_C, OPT_T, OPT_TT, OPT_PRE, OPT_POST,
     OPT_V = 100, OPT_VV, OPT_VVV, OPT_VVVV
 } OPTION_CHOICE;
 
 const OPTIONS engine_options[] = {
     {OPT_HELP_STR, 1, '-', "Usage: %s [options] engine...\n"},
-    {OPT_HELP_STR, 1, '-',
-        "  engine... Engines to load\n"},
+
+    OPT_SECTION("General"),
     {"help", OPT_HELP, '-', "Display this summary"},
+    {"t", OPT_T, '-', "Check that specified engine is available"},
+    {"pre", OPT_PRE, 's', "Run command against the ENGINE before loading it"},
+    {"post", OPT_POST, 's', "Run command against the ENGINE after loading it"},
+
+    OPT_SECTION("Output"),
     {"v", OPT_V, '-', "List 'control commands' For each specified engine"},
     {"vv", OPT_VV, '-', "Also display each command's description"},
     {"vvv", OPT_VVV, '-', "Also add the input flags for each command"},
     {"vvvv", OPT_VVVV, '-', "Also show internal input flags"},
     {"c", OPT_C, '-', "List the capabilities of specified engine"},
-    {"t", OPT_T, '-', "Check that specified engine is available"},
     {"tt", OPT_TT, '-', "Display error trace for unavailable engines"},
-    {"pre", OPT_PRE, 's', "Run command against the ENGINE before loading it"},
-    {"post", OPT_POST, 's', "Run command against the ENGINE after loading it"},
     {OPT_MORE_STR, OPT_EOF, 1,
      "Commands are like \"SO_PATH:/lib/libdriver.so\""},
+
+    OPT_PARAMETERS(),
+    {"engine", 0, 0, "ID of engine(s) to load"},
     {NULL}
 };
 
@@ -246,7 +251,7 @@ static void util_do_cmds(ENGINE *e, STACK_OF(OPENSSL_STRING) *cmds,
         cmd = sk_OPENSSL_STRING_value(cmds, loop);
         res = 1;                /* assume success */
         /* Check if this command has no ":arg" */
-        if ((arg = strstr(cmd, ":")) == NULL) {
+        if ((arg = strchr(cmd, ':')) == NULL) {
             if (!ENGINE_ctrl_cmd_string(e, cmd, NULL, 0))
                 res = 0;
         } else {
@@ -311,7 +316,8 @@ int engine_main(int argc, char **argv)
      * names, and then setup to parse the rest of the line as flags. */
     prog = argv[0];
     while ((argv1 = argv[1]) != NULL && *argv1 != '-') {
-        sk_OPENSSL_CSTRING_push(engines, argv1);
+        if (!sk_OPENSSL_CSTRING_push(engines, argv1))
+            goto end;
         argc--;
         argv++;
     }
@@ -342,20 +348,22 @@ int engine_main(int argc, char **argv)
             break;
         case OPT_TT:
             test_avail_noise++;
-            /* fall thru */
+            /* fall through */
         case OPT_T:
             test_avail++;
             break;
         case OPT_PRE:
-            sk_OPENSSL_STRING_push(pre_cmds, opt_arg());
+            if (sk_OPENSSL_STRING_push(pre_cmds, opt_arg()) <= 0)
+                goto end;
             break;
         case OPT_POST:
-            sk_OPENSSL_STRING_push(post_cmds, opt_arg());
+            if (sk_OPENSSL_STRING_push(post_cmds, opt_arg()) <= 0)
+                goto end;
             break;
         }
     }
 
-    /* Allow any trailing parameters as engine names. */
+    /* Any remaining arguments are engine names. */
     argc = opt_num_rest();
     argv = opt_rest();
     for ( ; *argv; argv++) {
@@ -365,12 +373,14 @@ int engine_main(int argc, char **argv)
             BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
             goto end;
         }
-        sk_OPENSSL_CSTRING_push(engines, *argv);
+        if (!sk_OPENSSL_CSTRING_push(engines, *argv))
+            goto end;
     }
 
     if (sk_OPENSSL_CSTRING_num(engines) == 0) {
         for (e = ENGINE_get_first(); e != NULL; e = ENGINE_get_next(e)) {
-            sk_OPENSSL_CSTRING_push(engines, ENGINE_get_id(e));
+            if (!sk_OPENSSL_CSTRING_push(engines, ENGINE_get_id(e)))
+                goto end;
         }
     }
 
@@ -399,6 +409,9 @@ int engine_main(int argc, char **argv)
 
                 if (ENGINE_get_RSA(e) != NULL
                     && !append_buf(&cap_buf, &cap_size, "RSA"))
+                    goto end;
+                if (ENGINE_get_EC(e) != NULL
+                    && !append_buf(&cap_buf, &cap_size, "EC"))
                     goto end;
                 if (ENGINE_get_DSA(e) != NULL
                     && !append_buf(&cap_buf, &cap_size, "DSA"))
@@ -486,4 +499,3 @@ int engine_main(int argc, char **argv)
     BIO_free_all(out);
     return ret;
 }
-#endif

@@ -1,7 +1,7 @@
 /*
- * Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
@@ -14,8 +14,7 @@
 
 #include <openssl/bio.h>
 #include "testutil.h"
-#include "internal/siphash.h"
-#include "../crypto/siphash/siphash_local.h"
+#include "crypto/siphash.h"
 #include "internal/nelem.h"
 
 typedef struct {
@@ -169,7 +168,7 @@ static TESTDATA tests[] = {
 
 static int test_siphash(int idx)
 {
-    SIPHASH siphash;
+    SIPHASH siphash = { 0, };
     TESTDATA test = tests[idx];
     unsigned char key[SIPHASH_KEY_SIZE];
     unsigned char in[64];
@@ -257,14 +256,16 @@ static int test_siphash(int idx)
 
 static int test_siphash_basic(void)
 {
-    SIPHASH siphash;
-    unsigned char key[SIPHASH_KEY_SIZE];
+    SIPHASH siphash = { 0, };
+    static const unsigned char key[SIPHASH_KEY_SIZE] = {0};
     unsigned char output[SIPHASH_MAX_DIGEST_SIZE];
 
     /* Use invalid hash size */
     return TEST_int_eq(SipHash_set_hash_size(&siphash, 4), 0)
+           && TEST_false(SipHash_Final(&siphash, output, 0))
            /* Use hash size = 8 */
            && TEST_true(SipHash_set_hash_size(&siphash, 8))
+           && TEST_false(SipHash_Final(&siphash, output, 8))
            && TEST_true(SipHash_Init(&siphash, key, 0, 0))
            && TEST_true(SipHash_Final(&siphash, output, 8))
            && TEST_int_eq(SipHash_Final(&siphash, output, 16), 0)

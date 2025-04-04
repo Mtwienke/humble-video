@@ -552,12 +552,17 @@ if [ "x$host" = x ]; then
 fi
 # normalize a triplet into a quadruplet
 host="$(${SRCPATH}/config.sub $host)"
+log_msg "host (pure extract from config.sub): $host"
 
 # split $host
 host_cpu="${host%%-*}"
+log_msg "host_cpu (extract from config.sub) $host_cpu"
 host="${host#*-}"
+log_msg "host (extract from config.sub): $host"
 host_vendor="${host%%-*}"
+log_msg "host_vendor (extract from config.sub): $host_vendor"
 host_os="${host#*-}"
+log_msg "host_os (extract from config.sub): $host_os"
 
 trap 'rm -rf conftest*' EXIT
 
@@ -565,6 +570,7 @@ trap 'rm -rf conftest*' EXIT
 cc_base="$(basename "$CC")"
 QPRE="-"
 if [[ $host_os = mingw* || $host_os = cygwin* ]]; then
+    log_msg "in windows"
     if [[ "$cc_base" = icl || "$cc_base" = icl[\ .]* ]]; then
         # Windows Intel Compiler creates dependency generation with absolute Windows paths, Cygwin's make does not support Windows paths.
         [[ $host_os = cygwin* ]] && die "Windows Intel Compiler support requires MSYS"
@@ -584,6 +590,7 @@ if [[ $host_os = mingw* || $host_os = cygwin* ]]; then
     elif [[ "$cc_base" = cl || "$cc_base" = cl[\ .]* ]]; then
         # Standard Microsoft Visual Studio
         compiler=CL
+        log_msg "in elif (of host_cpu)"
         compiler_style=MS
         CFLAGS="$CFLAGS -nologo -GS- -DHAVE_STRING_H -I\$(SRCPATH)/extras"
         cpp_check '' '' '_MSC_VER > 1800 || (_MSC_VER == 1800 && _MSC_FULL_VER >= 180030324)' || die "Microsoft Visual Studio support requires Visual Studio 2013 Update 2 or newer"
@@ -591,16 +598,32 @@ if [[ $host_os = mingw* || $host_os = cygwin* ]]; then
             host_cpu=x86_64
         elif cpp_check '' '' 'defined(_M_IX86)' ; then
             host_cpu=i486
-        elif cpp_check '' '' 'defined(_M_ARM64)' ; then
+        elif cpp_check '' '' 'defined(_M_ARM64) || defined(__aarch64__)' ; then
+            log_msg "in aarch"
             host_cpu=aarch64
         elif cpp_check '' '' 'defined(_M_ARM)' ; then
+            log_msg "in arm"
             host_cpu=arm
         fi
     else
         # MinGW uses broken pre-VS2015 Microsoft printf functions unless it's told to use the POSIX ones.
         CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112L"
     fi
+elif [[ $host_os = *darwin* ]]; then
+  log_msg "in darwin"
+  if cpp_check '' '' 'defined(_M_ARM64) || defined(__aarch64__)' ; then
+  log_msg "in aarch"
+  host_cpu=aarch64
+  elif cpp_check '' '' 'defined(_M_AMD64) || defined(_M_X64)' ; then
+    host_cpu=x86_64
+  elif cpp_check '' '' 'defined(_M_IX86)' ; then
+    host_cpu=i486
+  elif cpp_check '' '' 'defined(_M_ARM)' ; then
+    log_msg "in arm"
+    host_cpu=arm
+  fi
 else
+    log_msg "in else"
     if [[ "$cc_base" = icc || "$cc_base" = icc[\ .]* ]]; then
         AR="xiar"
         compiler=ICC
@@ -705,6 +728,8 @@ esac
 LDFLAGS="$LDFLAGS $libm"
 
 stack_alignment=4
+
+log_msg "host_cpu is $host_cpu"
 case $host_cpu in
     i*86)
         ARCH="X86"
@@ -732,6 +757,21 @@ case $host_cpu in
             ASFLAGS="$ASFLAGS -f elf32"
         fi
         ;;
+    aarch64)
+      ARCH="AARCH64"
+      log_msg "in aarch, sys = $SYS"
+      stack_alignment=16
+      if [ "$SYS" = MACOSX ] ; then
+        AS="${AS-${CC}}"
+        ASFLAGS="$ASFLAGS -DPREFIX -DPIC"
+        log_msg "in if, ASFLAGS = $ASFLAGS"
+      elif [ "$SYS" = WINDOWS ] && [ "$compiler" = CL ] ; then
+        AS="${AS-${SRCPATH}/tools/gas-preprocessor.pl -arch aarch64 -as-type armasm -- armasm64 -nologo}"
+      else
+        AS="${AS-${CC}}"
+        log_msg "in else, ASFLAGS = $ASFLAGS"
+      fi
+      ;;
     x86_64)
         ARCH="X86_64"
         AS="${AS-nasm}"
@@ -791,6 +831,7 @@ case $host_cpu in
         AS_EXT=".c"
         ;;
     arm*)
+      log_msg "in ARM, host cpu is $host_cpu, defined(__aarch64__) is defined(__aarch64__), updated3"
         ARCH="ARM"
         if [ "$SYS" = MACOSX ] ; then
             AS="${AS-${CC}}"
@@ -804,18 +845,6 @@ case $host_cpu in
             AS="${AS-${SRCPATH}/tools/gas-preprocessor.pl -arch arm -as-type armasm -force-thumb -- armasm -nologo -ignore 4509}"
         elif [ "$SYS" = WINDOWS ] ; then
             AS="${AS-${SRCPATH}/tools/gas-preprocessor.pl -arch arm -as-type clang -force-thumb -- ${CC} -mimplicit-it=always}"
-        else
-            AS="${AS-${CC}}"
-        fi
-        ;;
-    aarch64)
-        ARCH="AARCH64"
-        stack_alignment=16
-        if [ "$SYS" = MACOSX ] ; then
-            AS="${AS-${CC}}"
-            ASFLAGS="$ASFLAGS -DPREFIX -DPIC"
-        elif [ "$SYS" = WINDOWS ] && [ "$compiler" = CL ] ; then
-            AS="${AS-${SRCPATH}/tools/gas-preprocessor.pl -arch aarch64 -as-type armasm -- armasm64 -nologo}"
         else
             AS="${AS-${CC}}"
         fi
@@ -931,7 +960,8 @@ if [ $asm = auto -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
     define HAVE_MMX
 fi
 
-if [ $asm = auto -a $ARCH = ARM ] ; then
+if [ "$asm" = auto -a "$ARCH" = ARM ] && [ "$ARCH" != "arm64" ] ; then
+  log_msg "Arch is $ARCH, in if, hostcpu is $host_cpu"
     # set flags so neon is built by default
     [ $compiler == CL ] || echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon"
 
@@ -944,6 +974,7 @@ if [ $asm = auto -a $ARCH = ARM ] ; then
         cc_check '' '' '__asm__("movt r0, #0");'         && define HAVE_ARMV6T2
         cc_check '' '' '__asm__("vadd.i16 q0, q0, q0");' && define HAVE_NEON
         ASFLAGS="$ASFLAGS -c"
+        log_msg "in if arch arm, line 977: defining ASFLAGS with -c: $ASFLAGS"
     else
         echo "You specified a pre-ARMv6 or Thumb-1 CPU in your CFLAGS."
         echo "If you really want to run on such a CPU, configure with --disable-asm."
@@ -954,9 +985,13 @@ fi
 if [ $asm = auto -a $ARCH = AARCH64 ] ; then
     if [ $compiler = CL ] && cpp_check '' '' 'defined(_M_ARM64)' ; then
         define HAVE_NEON
+    elif [ "$SYS" = "MACOSX" ]; then
+      define HAVE_NEON
+      log_msg "in if arch arm, line 990: not defining ASFLAGS with -c: $ASFLAGS"
     elif cc_check '' '' '__asm__("cmeq v0.8h, v0.8h, #0");' ; then
         define HAVE_NEON
         ASFLAGS="$ASFLAGS -c"
+        log_msg "in if arch aarch64, line 994: defining ASFLAGS with -c: $ASFLAGS"
     else
         echo "no NEON support, try adding -mfpu=neon to CFLAGS"
         echo "If you really want to run on such a CPU, configure with --disable-asm."

@@ -33,7 +33,7 @@ case $HOST in
   *darwin*)
     # Darwin can only cross compile on Darwin, and now only 64-bit as of November 2018
     for cross_os in \
-      arm64-apple-darwin18
+      arm64-apple-darwin
       do
         humble_configure "${STAGE_DIR}" $cross_os
       done

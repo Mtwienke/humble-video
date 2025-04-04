@@ -41,6 +41,7 @@
 #define HMAC_crunch(ctx, buf, len)	sha2_hmac_update(&ctx, buf, len)
 #define HMAC_finish(ctx, dig, dlen)	dlen = SHA256_DIGEST_LENGTH; sha2_hmac_finish(&ctx, dig)
 #define HMAC_close(ctx)
+
 #elif defined(USE_GNUTLS)
 #include <nettle/hmac.h>
 #ifndef SHA256_DIGEST_LENGTH
@@ -52,16 +53,35 @@
 #define HMAC_crunch(ctx, buf, len)	hmac_sha256_update(&ctx, len, buf)
 #define HMAC_finish(ctx, dig, dlen)	dlen = SHA256_DIGEST_LENGTH; hmac_sha256_digest(&ctx, SHA256_DIGEST_LENGTH, dig)
 #define HMAC_close(ctx)
+
 #else	/* USE_OPENSSL */
 #include <openssl/ssl.h>
 #include <openssl/sha.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#define HMAC_setup(ctx, key, len)	HMAC_CTX_init(&ctx); HMAC_Init_ex(&ctx, (unsigned char *)key, len, EVP_sha256(), 0)
-#define HMAC_crunch(ctx, buf, len)	HMAC_Update(&ctx, (unsigned char *)buf, len)
-#define HMAC_finish(ctx, dig, dlen)	HMAC_Final(&ctx, (unsigned char *)dig, &dlen);
-#define HMAC_close(ctx)	HMAC_CTX_cleanup(&ctx)
-#endif
+#include <openssl/evp.h>
+#include <openssl/core_names.h>
+
+#define HMAC_CTX EVP_MAC_CTX*
+#define HMAC_setup(ctx, key, len) \
+do { \
+  EVP_MAC *mac = EVP_MAC_fetch(NULL, "HMAC", NULL); \
+  ctx = EVP_MAC_CTX_new(mac); \
+  OSSL_PARAM params[] = { OSSL_PARAM_utf8_string("digest", "SHA256", 0), OSSL_PARAM_END }; \
+  EVP_MAC_init(ctx, key, len, params); \
+  EVP_MAC_free(mac); \
+} while(0)
+  
+  #define HMAC_crunch(ctx, buf, len) EVP_MAC_update(ctx, buf, len)
+
+#define HMAC_finish(ctx, dig, dlen) \
+do { \
+  size_t out_len = 0; \
+  EVP_MAC_final(ctx, dig, &out_len, dlen); \
+  dlen = (int) out_len; \
+} while(0)
+  
+  #define HMAC_close(ctx) EVP_MAC_CTX_free(ctx)
+
+#endif /* USE_OPENSSL */
 
 extern void RTMP_TLS_Init();
 extern TLS_CTX RTMP_TLS_ctx;
@@ -302,6 +322,15 @@ swfcrunch(void *ptr, size_t size, size_t nmemb, void *stream)
   char *p = ptr;
   size_t len = size * nmemb;
 
+  // Initialize the HMAC_CTX if not already initialized
+  if (i->ctx == NULL) {
+    i->ctx = HMAC_CTX_new();  // Allocate memory for HMAC_CTX
+    if (!i->ctx) {
+      fprintf(stderr, "Error initializing HMAC_CTX\n");
+      return 0;  // Return 0 on failure
+    }
+  }
+  
   if (i->first)
     {
       i->first = 0;

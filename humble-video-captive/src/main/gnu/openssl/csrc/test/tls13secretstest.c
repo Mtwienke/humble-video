@@ -1,7 +1,7 @@
 /*
- * Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2025 The OpenSSL Project Authors. All Rights Reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
@@ -10,25 +10,16 @@
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
 
-#ifdef __VMS
-# pragma names save
-# pragma names as_is,shortened
-#endif
-
-#include "../ssl/ssl_locl.h"
-
-#ifdef __VMS
-# pragma names restore
-#endif
-
+#include "../ssl/ssl_local.h"
+#include "internal/ssl_unwrap.h"
 #include "testutil.h"
 
 #define IVLEN   12
 #define KEYLEN  16
 
 /*
- * Based on the test vectors availble in:
- * https://tools.ietf.org/html/draft-ietf-tls-tls13-vectors-06 
+ * Based on the test vectors available in:
+ * https://tools.ietf.org/html/draft-ietf-tls-tls13-vectors-06
  */
 
 static unsigned char hs_start_hash[] = {
@@ -136,7 +127,7 @@ static unsigned char server_ats_iv[] = {
 };
 
 /* Mocked out implementations of various functions */
-int ssl3_digest_cached_records(SSL *s, int keep)
+int ssl3_digest_cached_records(SSL_CONNECTION *s, int keep)
 {
     return 1;
 }
@@ -144,7 +135,7 @@ int ssl3_digest_cached_records(SSL *s, int keep)
 static int full_hash = 0;
 
 /* Give a hash of the currently set handshake */
-int ssl_handshake_hash(SSL *s, unsigned char *out, size_t outlen,
+int ssl_handshake_hash(SSL_CONNECTION *s, unsigned char *out, size_t outlen,
                        size_t *hashlen)
 {
     if (sizeof(hs_start_hash) > outlen
@@ -162,22 +153,28 @@ int ssl_handshake_hash(SSL *s, unsigned char *out, size_t outlen,
     return 1;
 }
 
-const EVP_MD *ssl_handshake_md(SSL *s)
+const EVP_MD *ssl_handshake_md(SSL_CONNECTION *s)
 {
     return EVP_sha256();
 }
 
-void RECORD_LAYER_reset_read_sequence(RECORD_LAYER *rl)
+int ssl_cipher_get_evp_cipher(SSL_CTX *ctx, const SSL_CIPHER *sslc,
+                                     const EVP_CIPHER **enc)
 {
+    return 0;
 }
 
-void RECORD_LAYER_reset_write_sequence(RECORD_LAYER *rl)
+int ssl_cipher_get_evp_md_mac(SSL_CTX *ctx, const SSL_CIPHER *sslc,
+                              const EVP_MD **md,
+                              int *mac_pkey_type, size_t *mac_secret_size)
 {
+    return 0;
 }
 
-int ssl_cipher_get_evp(const SSL_SESSION *s, const EVP_CIPHER **enc,
-                       const EVP_MD **md, int *mac_pkey_type,
-                       size_t *mac_secret_size, SSL_COMP **comp, int use_etm)
+int ssl_cipher_get_evp(SSL_CTX *ctx, const SSL_SESSION *s,
+                       const EVP_CIPHER **enc, const EVP_MD **md,
+                       int *mac_pkey_type, size_t *mac_secret_size,
+                       SSL_COMP **comp, int use_etm)
 
 {
     return 0;
@@ -188,7 +185,7 @@ int tls1_alert_code(int code)
     return code;
 }
 
-int ssl_log_secret(SSL *ssl,
+int ssl_log_secret(SSL_CONNECTION *sc,
                    const char *label,
                    const uint8_t *secret,
                    size_t secret_len)
@@ -196,29 +193,53 @@ int ssl_log_secret(SSL *ssl,
     return 1;
 }
 
-const EVP_MD *ssl_md(int idx)
+const EVP_MD *ssl_md(SSL_CTX *ctx, int idx)
 {
     return EVP_sha256();
 }
 
-void ossl_statem_fatal(SSL *s, int al, int func, int reason, const char *file,
-                           int line)
+void ossl_statem_send_fatal(SSL_CONNECTION *s, int al)
 {
 }
 
-int ossl_statem_export_allowed(SSL *s)
+void ossl_statem_fatal(SSL_CONNECTION *s, int al, int reason,
+                       const char *fmt, ...)
+{
+}
+
+int ossl_statem_export_allowed(SSL_CONNECTION *s)
 {
     return 1;
 }
 
-int ossl_statem_export_early_allowed(SSL *s)
+int ossl_statem_export_early_allowed(SSL_CONNECTION *s)
 {
     return 1;
+}
+
+void ssl_evp_cipher_free(const EVP_CIPHER *cipher)
+{
+}
+
+void ssl_evp_md_free(const EVP_MD *md)
+{
+}
+
+int ssl_set_new_record_layer(SSL_CONNECTION *s, int version, int direction,
+                             int level, unsigned char *secret, size_t secretlen,
+                             unsigned char *key, size_t keylen,
+                             unsigned char *iv,  size_t ivlen,
+                             unsigned char *mackey, size_t mackeylen,
+                             const EVP_CIPHER *ciph, size_t taglen,
+                             int mactype, const EVP_MD *md,
+                             const SSL_COMP *comp, const EVP_MD *kdfdigest)
+{
+    return 0;
 }
 
 /* End of mocked out code */
 
-static int test_secret(SSL *s, unsigned char *prk,
+static int test_secret(SSL_CONNECTION *s, unsigned char *prk,
                        const unsigned char *label, size_t labellen,
                        const unsigned char *ref_secret,
                        const unsigned char *ref_key, const unsigned char *ref_iv)
@@ -236,7 +257,7 @@ static int test_secret(SSL *s, unsigned char *prk,
     }
 
     if (!tls13_hkdf_expand(s, md, prk, label, labellen, hash, hashsize,
-                           gensecret, hashsize)) {
+                           gensecret, hashsize, 1)) {
         TEST_error("Secret generation failed");
         return 0;
     }
@@ -266,7 +287,8 @@ static int test_secret(SSL *s, unsigned char *prk,
 static int test_handshake_secrets(void)
 {
     SSL_CTX *ctx = NULL;
-    SSL *s = NULL;
+    SSL *ssl = NULL;
+    SSL_CONNECTION *s;
     int ret = 0;
     size_t hashsize;
     unsigned char out_master_secret[EVP_MAX_MD_SIZE];
@@ -276,8 +298,8 @@ static int test_handshake_secrets(void)
     if (!TEST_ptr(ctx))
         goto err;
 
-    s = SSL_new(ctx);
-    if (!TEST_ptr(s ))
+    ssl = SSL_new(ctx);
+    if (!TEST_ptr(ssl) || !TEST_ptr(s = SSL_CONNECTION_FROM_SSL_ONLY(ssl)))
         goto err;
 
     s->session = SSL_SESSION_new();
@@ -306,7 +328,7 @@ static int test_handshake_secrets(void)
                      handshake_secret, sizeof(handshake_secret)))
         goto err;
 
-    hashsize = EVP_MD_size(ssl_handshake_md(s));
+    hashsize = EVP_MD_get_size(ssl_handshake_md(s));
     if (!TEST_size_t_eq(sizeof(client_hts), hashsize))
         goto err;
     if (!TEST_size_t_eq(sizeof(client_hts_key), KEYLEN))
@@ -388,7 +410,7 @@ static int test_handshake_secrets(void)
 
     ret = 1;
  err:
-    SSL_free(s);
+    SSL_free(ssl);
     SSL_CTX_free(ctx);
     return ret;
 }

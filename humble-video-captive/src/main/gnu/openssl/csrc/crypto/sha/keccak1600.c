@@ -1,7 +1,7 @@
 /*
- * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
@@ -11,9 +11,11 @@
 #include <string.h>
 #include <assert.h>
 
+#include "internal/nelem.h"
+
 size_t SHA3_absorb(uint64_t A[5][5], const unsigned char *inp, size_t len,
                    size_t r);
-void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r);
+void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r, int next);
 
 #if !defined(KECCAK1600_ASM) || !defined(SELFTEST)
 
@@ -25,7 +27,14 @@ void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r);
 # define KECCAK_2X      /* default to KECCAK_2X variant */
 #endif
 
-#if defined(__i386) || defined(__i386__) || defined(_M_IX86)
+#if defined(__i386) || defined(__i386__) || defined(_M_IX86) || \
+    (defined(__x86_64) && !defined(__BMI__)) || defined(_M_X64) || \
+    defined(__mips) || defined(__riscv) || defined(__s390__) || \
+    defined(__EMSCRIPTEN__)
+/*
+ * These don't have "and with complement" instruction, so minimize amount
+ * of "not"-s. Implemented only in the [default] KECCAK_2X variant.
+ */
 # define KECCAK_COMPLEMENTING_TRANSFORM
 #endif
 
@@ -78,30 +87,30 @@ static const unsigned char rhotates[5][5] = {
 };
 
 static const uint64_t iotas[] = {
-    BIT_INTERLEAVE ? 0x0000000000000001U : 0x0000000000000001U,
-    BIT_INTERLEAVE ? 0x0000008900000000U : 0x0000000000008082U,
-    BIT_INTERLEAVE ? 0x8000008b00000000U : 0x800000000000808aU,
-    BIT_INTERLEAVE ? 0x8000808000000000U : 0x8000000080008000U,
-    BIT_INTERLEAVE ? 0x0000008b00000001U : 0x000000000000808bU,
-    BIT_INTERLEAVE ? 0x0000800000000001U : 0x0000000080000001U,
-    BIT_INTERLEAVE ? 0x8000808800000001U : 0x8000000080008081U,
-    BIT_INTERLEAVE ? 0x8000008200000001U : 0x8000000000008009U,
-    BIT_INTERLEAVE ? 0x0000000b00000000U : 0x000000000000008aU,
-    BIT_INTERLEAVE ? 0x0000000a00000000U : 0x0000000000000088U,
-    BIT_INTERLEAVE ? 0x0000808200000001U : 0x0000000080008009U,
-    BIT_INTERLEAVE ? 0x0000800300000000U : 0x000000008000000aU,
-    BIT_INTERLEAVE ? 0x0000808b00000001U : 0x000000008000808bU,
-    BIT_INTERLEAVE ? 0x8000000b00000001U : 0x800000000000008bU,
-    BIT_INTERLEAVE ? 0x8000008a00000001U : 0x8000000000008089U,
-    BIT_INTERLEAVE ? 0x8000008100000001U : 0x8000000000008003U,
-    BIT_INTERLEAVE ? 0x8000008100000000U : 0x8000000000008002U,
-    BIT_INTERLEAVE ? 0x8000000800000000U : 0x8000000000000080U,
-    BIT_INTERLEAVE ? 0x0000008300000000U : 0x000000000000800aU,
-    BIT_INTERLEAVE ? 0x8000800300000000U : 0x800000008000000aU,
-    BIT_INTERLEAVE ? 0x8000808800000001U : 0x8000000080008081U,
-    BIT_INTERLEAVE ? 0x8000008800000000U : 0x8000000000008080U,
-    BIT_INTERLEAVE ? 0x0000800000000001U : 0x0000000080000001U,
-    BIT_INTERLEAVE ? 0x8000808200000000U : 0x8000000080008008U
+    BIT_INTERLEAVE ? 0x0000000000000001ULL : 0x0000000000000001ULL,
+    BIT_INTERLEAVE ? 0x0000008900000000ULL : 0x0000000000008082ULL,
+    BIT_INTERLEAVE ? 0x8000008b00000000ULL : 0x800000000000808aULL,
+    BIT_INTERLEAVE ? 0x8000808000000000ULL : 0x8000000080008000ULL,
+    BIT_INTERLEAVE ? 0x0000008b00000001ULL : 0x000000000000808bULL,
+    BIT_INTERLEAVE ? 0x0000800000000001ULL : 0x0000000080000001ULL,
+    BIT_INTERLEAVE ? 0x8000808800000001ULL : 0x8000000080008081ULL,
+    BIT_INTERLEAVE ? 0x8000008200000001ULL : 0x8000000000008009ULL,
+    BIT_INTERLEAVE ? 0x0000000b00000000ULL : 0x000000000000008aULL,
+    BIT_INTERLEAVE ? 0x0000000a00000000ULL : 0x0000000000000088ULL,
+    BIT_INTERLEAVE ? 0x0000808200000001ULL : 0x0000000080008009ULL,
+    BIT_INTERLEAVE ? 0x0000800300000000ULL : 0x000000008000000aULL,
+    BIT_INTERLEAVE ? 0x0000808b00000001ULL : 0x000000008000808bULL,
+    BIT_INTERLEAVE ? 0x8000000b00000001ULL : 0x800000000000008bULL,
+    BIT_INTERLEAVE ? 0x8000008a00000001ULL : 0x8000000000008089ULL,
+    BIT_INTERLEAVE ? 0x8000008100000001ULL : 0x8000000000008003ULL,
+    BIT_INTERLEAVE ? 0x8000008100000000ULL : 0x8000000000008002ULL,
+    BIT_INTERLEAVE ? 0x8000000800000000ULL : 0x8000000000000080ULL,
+    BIT_INTERLEAVE ? 0x0000008300000000ULL : 0x000000000000800aULL,
+    BIT_INTERLEAVE ? 0x8000800300000000ULL : 0x800000008000000aULL,
+    BIT_INTERLEAVE ? 0x8000808800000001ULL : 0x8000000080008081ULL,
+    BIT_INTERLEAVE ? 0x8000008800000000ULL : 0x8000000000008080ULL,
+    BIT_INTERLEAVE ? 0x0000800000000001ULL : 0x0000000080000001ULL,
+    BIT_INTERLEAVE ? 0x8000808200000000ULL : 0x8000000080008008ULL
 };
 
 #if defined(KECCAK_REF)
@@ -224,7 +233,7 @@ static void Chi(uint64_t A[5][5])
 
 static void Iota(uint64_t A[5][5], size_t i)
 {
-    assert(i < (sizeof(iotas) / sizeof(iotas[0])));
+    assert(i < OSSL_NELEM(iotas));
     A[0][0] ^= iotas[i];
 }
 
@@ -257,7 +266,7 @@ static void Round(uint64_t A[5][5], size_t i)
     uint64_t C[5], E[2];        /* registers */
     uint64_t D[5], T[2][5];     /* memory    */
 
-    assert(i < (sizeof(iotas) / sizeof(iotas[0])));
+    assert(i < OSSL_NELEM(iotas));
 
     C[0] = A[0][0] ^ A[1][0] ^ A[2][0] ^ A[3][0] ^ A[4][0];
     C[1] = A[0][1] ^ A[1][1] ^ A[2][1] ^ A[3][1] ^ A[4][1];
@@ -384,7 +393,7 @@ static void Round(uint64_t A[5][5], size_t i)
 {
     uint64_t C[5], D[5];
 
-    assert(i < (sizeof(iotas) / sizeof(iotas[0])));
+    assert(i < OSSL_NELEM(iotas));
 
     C[0] = A[0][0] ^ A[1][0] ^ A[2][0] ^ A[3][0] ^ A[4][0];
     C[1] = A[0][1] ^ A[1][1] ^ A[2][1] ^ A[3][1] ^ A[4][1];
@@ -529,7 +538,7 @@ static void Round(uint64_t R[5][5], uint64_t A[5][5], size_t i)
 {
     uint64_t C[5], D[5];
 
-    assert(i < (sizeof(iotas) / sizeof(iotas[0])));
+    assert(i < OSSL_NELEM(iotas));
 
     C[0] = A[0][0] ^ A[1][0] ^ A[2][0] ^ A[3][0] ^ A[4][0];
     C[1] = A[0][1] ^ A[1][1] ^ A[2][1] ^ A[3][1] ^ A[4][1];
@@ -687,7 +696,7 @@ static void FourRounds(uint64_t A[5][5], size_t i)
 {
     uint64_t B[5], C[5], D[5];
 
-    assert(i <= (sizeof(iotas) / sizeof(iotas[0]) - 4));
+    assert(i <= OSSL_NELEM(iotas) - 4);
 
     /* Round 4*n */
     C[0] = A[0][0] ^ A[1][0] ^ A[2][0] ^ A[3][0] ^ A[4][0];
@@ -1083,10 +1092,16 @@ size_t SHA3_absorb(uint64_t A[5][5], const unsigned char *inp, size_t len,
 }
 
 /*
- * SHA3_squeeze is called once at the end to generate |out| hash value
- * of |len| bytes.
+ * SHA3_squeeze may be called after SHA3_absorb to generate |out| hash value of
+ * |len| bytes.
+ * If multiple SHA3_squeeze calls are required the output length |len| must be a
+ * multiple of the blocksize, with |next| being 0 on the first call and 1 on
+ * subsequent calls. It is the callers responsibility to buffer the results.
+ * When only a single call to SHA3_squeeze is required, |len| can be any size
+ * and |next| must be 0.
  */
-void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r)
+void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r,
+                  int next)
 {
     uint64_t *A_flat = (uint64_t *)A;
     size_t i, w = r / 8;
@@ -1094,6 +1109,9 @@ void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r)
     assert(r < (25 * sizeof(A[0][0])) && (r % 8) == 0);
 
     while (len != 0) {
+        if (next)
+            KeccakF1600(A);
+        next = 1;
         for (i = 0; i < w && len != 0; i++) {
             uint64_t Ai = BitDeinterleave(A_flat[i]);
 
@@ -1116,8 +1134,6 @@ void SHA3_squeeze(uint64_t A[5][5], unsigned char *out, size_t len, size_t r)
             out += 8;
             len -= 8;
         }
-        if (len)
-            KeccakF1600(A);
     }
 }
 #endif
@@ -1146,7 +1162,7 @@ void SHA3_sponge(const unsigned char *inp, size_t len,
 
 # include <stdio.h>
 
-int main()
+int main(void)
 {
     /*
      * This is 5-bit SHAKE128 test from http://csrc.nist.gov/groups/ST/toolkit/examples.html#aHashing
@@ -1235,11 +1251,11 @@ int main()
         printf(++i % 16 && i != sizeof(out) ? " " : "\n");
     }
 
-    if (memcmp(out,result,sizeof(out))) {
-        fprintf(stderr,"failure\n");
+    if (memcmp(out, result, sizeof(out))) {
+        fprintf(stderr, "failure\n");
         return 1;
     } else {
-        fprintf(stderr,"success\n");
+        fprintf(stderr, "success\n");
         return 0;
     }
 }

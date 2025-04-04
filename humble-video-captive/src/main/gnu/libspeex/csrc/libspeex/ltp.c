@@ -46,10 +46,10 @@
 #endif
 
 
-#ifdef _USE_SSE
-#include "ltp_sse.h"
-#elif defined (ARM4_ASM) || defined(ARM5E_ASM)
+#if defined (ARM4_ASM) || defined(ARM5E_ASM) || defined (__arm64)
 #include "ltp_arm4.h"
+#elif _USE_SSE
+#include "ltp_sse.h"
 #elif defined (BFIN_ASM)
 #include "ltp_bfin.h"
 #endif

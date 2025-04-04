@@ -41,10 +41,11 @@
 #include "ltp.h"
 #include <math.h>
 
-#ifdef _USE_SSE
-#include "filters_sse.h"
-#elif defined (ARM4_ASM) || defined(ARM5E_ASM)
+#if defined(ARM4_ASM) || defined(ARM5E_ASM) || defined(__arm64)
+#undef _USE_SSE
 #include "filters_arm4.h"
+#elif defined _USE_SSE
+#include "filters_sse.h"
 #elif defined (BFIN_ASM)
 #include "filters_bfin.h"
 #endif

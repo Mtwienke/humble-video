@@ -55,6 +55,7 @@ typedef arc4_context *	RC4_handle;
 #define HMAC_finish(ctx, dig, dlen)	dlen = SHA256_DIGEST_LENGTH; hmac_sha256_digest(&ctx, SHA256_DIGEST_LENGTH, dig)
 #define HMAC_close(ctx)
 
+
 typedef struct arcfour_ctx*	RC4_handle;
 #define RC4_alloc(h)	*h = malloc(sizeof(struct arcfour_ctx))
 #define RC4_setkey(h,l,k)	arcfour_set_key(h, l, k)
@@ -66,12 +67,14 @@ typedef struct arcfour_ctx*	RC4_handle;
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
 #include <openssl/rc4.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
 #if OPENSSL_VERSION_NUMBER < 0x0090800 || !defined(SHA256_DIGEST_LENGTH)
 #error Your OpenSSL is too old, need 0.9.8 or newer with SHA256
 #endif
-#define HMAC_setup(ctx, key, len)	HMAC_CTX_init(&ctx); HMAC_Init_ex(&ctx, key, len, EVP_sha256(), 0)
-#define HMAC_crunch(ctx, buf, len)	HMAC_Update(&ctx, buf, len)
-#define HMAC_finish(ctx, dig, dlen)	HMAC_Final(&ctx, dig, &dlen); HMAC_CTX_cleanup(&ctx)
+#define HMAC_setup(ctx, key, len)	HMAC_CTX_new(); HMAC_Init_ex(ctx, key, len, EVP_sha256(), 0)
+#define HMAC_crunch(ctx, buf, len)	HMAC_Update(ctx, buf, len)
+#define HMAC_finish(ctx, dig, dlen)	HMAC_Final(ctx, dig, &dlen); HMAC_CTX_free(ctx)
 
 typedef RC4_KEY *	RC4_handle;
 #define RC4_alloc(h)	*h = malloc(sizeof(RC4_KEY))
@@ -117,23 +120,35 @@ static void InitRC4Encryption
 {
   uint8_t digest[SHA256_DIGEST_LENGTH];
   unsigned int digestLen = 0;
-  HMAC_CTX ctx;
+  HMAC_CTX *ctx = HMAC_CTX_new();
+  if (ctx == NULL) {
+    fprintf(stderr, "Failed to create HMAC_CTX\n");
+  }
+  
+
+
+  
+
 
   RC4_alloc(rc4keyIn);
   RC4_alloc(rc4keyOut);
 
-  HMAC_setup(ctx, secretKey, 128);
+  // Initialize, update, and finalize HMAC as needed
+  HMAC_Init_ex(ctx, secretKey, 128, EVP_sha256(), NULL);
+  HMAC_Update(ctx, secretKey, 128);
+  HMAC_Final(ctx, digest, &digestLen);
+/*  HMAC_setup(ctx, secretKey, 128);
   HMAC_crunch(ctx, pubKeyIn, 128);
-  HMAC_finish(ctx, digest, digestLen);
+  HMAC_finish(ctx, digest, digestLen);*/
 
   RTMP_Log(RTMP_LOGDEBUG, "RC4 Out Key: ");
   RTMP_LogHex(RTMP_LOGDEBUG, digest, 16);
 
   RC4_setkey(*rc4keyOut, 16, digest);
 
-  HMAC_setup(ctx, secretKey, 128);
-  HMAC_crunch(ctx, pubKeyOut, 128);
-  HMAC_finish(ctx, digest, digestLen);
+  HMAC_Init_ex(ctx, secretKey, 128, EVP_sha256(), NULL);
+  HMAC_Update(ctx, pubKeyOut, 128);
+  HMAC_Final(ctx, digest, &digestLen);
 
   RTMP_Log(RTMP_LOGDEBUG, "RC4 In Key: ");
   RTMP_LogHex(RTMP_LOGDEBUG, digest, 16);
@@ -266,7 +281,7 @@ HMACsha256(const uint8_t *message, size_t messageLen, const uint8_t *key,
 	   size_t keylen, uint8_t *digest)
 {
   unsigned int digestLen;
-  HMAC_CTX ctx;
+  HMAC_CTX *ctx = HMAC_CTX_new();
 
   HMAC_setup(ctx, key, keylen);
   HMAC_crunch(ctx, message, messageLen);
@@ -762,6 +777,17 @@ HandShake(RTMP * r, int FP9HandShake)
   for (i = 2; i < RTMP_SIG_SIZE/4; i++)
     *ip++ = rand();
 #endif
+  
+  
+const char *hexP = 
+"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"
+"29024E088A67CC74020BBEA63B139B22514A08798E3404DD"
+"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"
+"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"
+"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381"
+"FFFFFFFFFFFFFFFF";
+
+const char *hexG = "2";
 
   /* set handshake digest */
   if (FP9HandShake)
@@ -769,7 +795,7 @@ HandShake(RTMP * r, int FP9HandShake)
       if (encrypted)
 	{
 	  /* generate Diffie-Hellmann parameters */
-	  r->Link.dh = DHInit(1024);
+	  r->Link.dh = DHInit(hexP, hexG, 1024);
 	  if (!r->Link.dh)
 	    {
 	      RTMP_Log(RTMP_LOGERROR, "%s: Couldn't initialize Diffie-Hellmann!",
@@ -1156,8 +1182,18 @@ SHandShake(RTMP * r)
     {
       if (encrypted)
 	{
+    const char *hexP = 
+    "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"
+    "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"
+    "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"
+    "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"
+    "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381"
+    "FFFFFFFFFFFFFFFF";
+    
+    const char *hexG = "2";
+
 	  /* generate Diffie-Hellmann parameters */
-	  r->Link.dh = DHInit(1024);
+	  r->Link.dh = DHInit(hexP, hexG, 1024);
 	  if (!r->Link.dh)
 	    {
 	      RTMP_Log(RTMP_LOGERROR, "%s: Couldn't initialize Diffie-Hellmann!",

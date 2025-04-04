@@ -46,4 +46,5 @@ clean-local: incarcerate-package
 	cd csrc && $(MAKE) clean && DESTDIR="$(DESTDIR)" $(MAKE) uninstall
 
 distclean-local:
-	rm -rf csrc
+	#rm -rf csrc //made distclean and it removed the whole source, why the hell?!?!? 
+		

@@ -22,7 +22,7 @@
  *  Boston, MA  02110-1301, USA.
  *  http://www.gnu.org/copyleft/lgpl.html
  */
-
+#define FLOAT_WORD_ORDER BYTE_ORDER
 #ifndef __BYTES_H__
 #define __BYTES_H__
 

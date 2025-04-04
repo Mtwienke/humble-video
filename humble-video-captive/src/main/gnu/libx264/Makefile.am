@@ -29,7 +29,11 @@ install-exec-hook: incarcerate-package
 	if test -f install.sh; then \
 	  DESTDIR="$(DESTDIR)" sh install.sh; \
 	fi
-
+	
+AM_CPPFLAGS = -I../../ffmpeg/csrc/libavformat \
+				-I../../ffmpeg/csrc/libavutil \
+				-I../../ffmpeg/csrc/libavcodec
+							
 
 uninstall-local: incarcerate-package
 	if test -f uninstall.sh; then \
@@ -48,4 +52,5 @@ clean-local: incarcerate-package
 	cd csrc && $(MAKE) clean && DESTDIR="$(DESTDIR)" $(MAKE) uninstall
 
 distclean-local:
-	rm -rf csrc
+	//rm -rf csrc //made distclean and it removed the whole source, why the hell?!?!?
+	

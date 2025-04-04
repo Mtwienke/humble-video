@@ -4,7 +4,7 @@
 # the configure of the captive package you're configuring
 prefix="/usr/local"
 exec_prefix="${prefix}"
-HOST_OS=arm-apple-darwin23.6.0
+HOST_OS=aarch64-apple-darwin24.4.0
 
 if [ "" = "1" ]; then
   CROSS="--host ${HOST_OS}"
@@ -12,7 +12,7 @@ else
   CROSS=
 fi
 
-CFLAGS="-I${prefix}/include -O0 -g -O2" 
+CFLAGS="-I${prefix}/include -O0 -arch arm64 -g -O2" 
 
 case ${HOST_OS} in
   *darwin*)
@@ -23,11 +23,11 @@ esac
 CC="gcc" \
 CFLAGS="${CFLAGS}" \
 LD="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" \
-LDFLAGS="-L${exec_prefix}/lib " \
-CPP="gcc -E" \
+LDFLAGS="-L${exec_prefix}/lib -arch arm64 " \
+CPP="@CPP@" \
 CPPFLAGS="" \
 CXX="g++" \
-CXXFLAGS="" \
+CXXFLAGS="-arch arm64 " \
 NM="/usr/bin/nm -B" \
 AS="as" \
 ASFLAGS="" \
@@ -35,7 +35,7 @@ STRIP="strip" \
 RANLIB="ranlib" \
 AR="ar" \
 DLLTOOL="false" \
-PATH="$PATH:/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu${exec_prefix}/bin@" sh /Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/libtiff/csrc/configure \
+PATH="$PATH:/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu${exec_prefix}/bin@" sh /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/libtiff/csrc/configure \
   ${CROSS} \
   --with-zlib-include-dir="${prefix}/include" \
   --with-zlib-lib-dir="${exec_prefix}/lib" \
@@ -43,4 +43,4 @@ PATH="$PATH:/Library/Java/Extensions/humble-video-master/humble-video-captive/sr
   --disable-shared \
   --disable-dependency-tracking \
   --prefix="${prefix}" || \
-  (echo "Could not configure library: \"/Library/Java/Extensions/humble-video-master/humble-video-captive/src/main/gnu/libtiff\"; you may want to try disabling it or installing your own version" && exit 1)
+  (echo "Could not configure library: \"/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/libtiff\"; you may want to try disabling it or installing your own version" && exit 1)

@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2015-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
@@ -10,12 +10,15 @@
 #include <openssl/crypto.h>
 
 #include "testutil.h"
+#include "internal/e_os.h"
 
 static int test_sec_mem(void)
 {
-#if defined(OPENSSL_SYS_LINUX) || defined(OPENSSL_SYS_UNIX)
+#ifndef OPENSSL_NO_SECURE_MEMORY
     int testresult = 0;
     char *p = NULL, *q = NULL, *r = NULL, *s = NULL;
+
+    TEST_info("Secure memory is implemented.");
 
     s = OPENSSL_secure_malloc(20);
     /* s = non-secure 20 */
@@ -89,7 +92,7 @@ static int test_sec_mem(void)
      * elements was 1<<31, as |int i| was set to that, which is a
      * negative number. However, it requires minimum input values:
      *
-     * CRYPTO_secure_malloc_init((size_t)1<<34, (size_t)1<<4);
+     * CRYPTO_secure_malloc_init((size_t)1<<34, 1<<4);
      *
      * Which really only works on 64-bit systems, since it took 16 GB
      * secure memory arena to trigger the problem. It naturally takes
@@ -110,7 +113,7 @@ static int test_sec_mem(void)
      */
     if (sizeof(size_t) > 4) {
         TEST_info("Possible infinite loop: 1<<31 limit");
-        if (TEST_true(CRYPTO_secure_malloc_init((size_t)1<<34, (size_t)1<<4) != 0))
+        if (TEST_true(CRYPTO_secure_malloc_init((size_t)1<<34, 1<<4) != 0))
             TEST_true(CRYPTO_secure_malloc_done());
     }
 # endif
@@ -124,6 +127,7 @@ static int test_sec_mem(void)
     OPENSSL_secure_free(s);
     return testresult;
 #else
+    TEST_info("Secure memory is *not* implemented.");
     /* Should fail. */
     return TEST_false(CRYPTO_secure_malloc_init(4096, 32));
 #endif
@@ -131,7 +135,7 @@ static int test_sec_mem(void)
 
 static int test_sec_mem_clear(void)
 {
-#if defined(OPENSSL_SYS_LINUX) || defined(OPENSSL_SYS_UNIX)
+#ifndef OPENSSL_NO_SECURE_MEMORY
     const int size = 64;
     unsigned char *p = NULL;
     int i, res = 0;
@@ -162,7 +166,6 @@ static int test_sec_mem_clear(void)
 
     res = 1;
     p = NULL;
-
 err:
     OPENSSL_secure_free(p);
     CRYPTO_secure_malloc_done();

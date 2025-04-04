@@ -57,7 +57,7 @@ fi
 
 echo "Configuring X264 with these options: $X264_OPTIONS"
 CC="@CC@" \
-CFLAGS="-I@includedir@ -I@abs_builddir@/csrc/ @CFLAGS@" \
+CFLAGS="-I@includedir@ -I@abs_builddir@/csrc/ -I@abs_builddir@/../ffmpeg/csrc/ @CFLAGS@" \
 LD="@LD@" \
 LDFLAGS="-L@libdir@ @LDFLAGS@" \
 CPP="@CPP@" \
@@ -70,7 +70,7 @@ ASFLAGS="@ASFLAGS@" \
 STRIP="@STRIP@" \
 RANLIB="@RANLIB@" \
 AR="@AR@" \
-AS="@NASM@" \
+AS="clang -c" \
 DLLTOOL="@DLLTOOL@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" bash @abs_builddir@/csrc/configure \
   --extra-cflags="-I'@includedir@' -I'@abs_builddir@/csrc/' $CFLAGS" \

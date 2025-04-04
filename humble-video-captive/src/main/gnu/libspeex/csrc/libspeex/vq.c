@@ -38,11 +38,11 @@
 #include "stack_alloc.h"
 #include "arch.h"
 
-#ifdef _USE_SSE
+#if defined(SHORTCUTS) && (defined(ARM4_ASM) || defined(ARM5E_ASM)) || defined (__arm64)
+#include "vq_arm4.h" 
+#elif defined(_USE_SSE)
 #include <xmmintrin.h>
 #include "vq_sse.h"
-#elif defined(SHORTCUTS) && (defined(ARM4_ASM) || defined(ARM5E_ASM))
-#include "vq_arm4.h"
 #elif defined(BFIN_ASM)
 #include "vq_bfin.h"
 #endif

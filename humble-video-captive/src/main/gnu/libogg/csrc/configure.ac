@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([libogg],[1.3.3],[ogg-dev@xiph.org])
-
+AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_SRCDIR(src/framing.c)
 
 AM_INIT_AUTOMAKE

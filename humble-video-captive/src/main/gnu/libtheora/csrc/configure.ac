@@ -14,6 +14,11 @@ AC_CONFIG_SRCDIR([lib/fdct.c])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
+m4_include([m4/ogg.m4])
+m4_include([m4/vorbis.m4])
+m4_include([m4/sdl.m4])
+m4_include([m4/as-ac-expand.m4])
+
 dnl Library versioning
 dnl CURRENT, REVISION, AGE
 dnl - library source changed -> increment REVISION
@@ -273,11 +278,7 @@ fi
 if test "x$HAVE_OGG" = "xno"
 then
   dnl fall back to the old school test
-  XIPH_PATH_OGG(, AC_MSG_ERROR([
-    libogg is required to build this package!
-    please see http://www.xiph.org/ for how to
-    obtain a copy.
-  ]))
+  XIPH_PATH_OGG([AC_MSG_NOTICE([libogg found. Proceeding...])], [AC_MSG_ERROR([libogg is required to build this package! Please see http://www.xiph.org/ for how to obtain a copy.])])
   cflags_save=$CFLAGS
   libs_save=$LIBS
   CFLAGS="$CFLAGS $OGG_CFLAGS"

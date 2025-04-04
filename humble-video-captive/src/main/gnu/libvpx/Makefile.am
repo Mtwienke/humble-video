@@ -48,13 +48,14 @@ uninstall-local: incarcerate-package
 	if test -f uninstall.sh; then \
 	  DESTDIR="$(DESTDIR)" sh uninstall.sh; \
 	fi
-	cd csrc && $(MAKE) DESTDIR="$(DESTDIR)" uninstall
+	//cd csrc && $(MAKE) DESTDIR="$(DESTDIR)" uninstall | uninstall isnt defined
 
 clean-local: incarcerate-package
 	if test -f uninstall.sh; then \
 	  DESTDIR="$(DESTDIR)" sh uninstall.sh; \
 	fi
-	cd csrc && $(MAKE) clean && $(MAKE) DESTDIR="$(DESTDIR)" uninstall
+	cd csrc && $(MAKE) clean //&& $(MAKE) DESTDIR="$(DESTDIR)" uninstall | uninstall isnt defined
 
 distclean-local:
-	rm -rf csrc
+	rm csrc/vpx_config.h
+	//rm -rf csrc //made distclean and it removed the whole source, why the hell?!?!?

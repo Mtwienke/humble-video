@@ -392,7 +392,6 @@ CMDLINE_SELECT="
     experimental
     always_adjust_bpm
 "
-
 process_cmdline() {
     for opt do
         optval="${opt#*=}"
@@ -419,7 +418,6 @@ process_cmdline() {
         esac
     done
 }
-
 post_process_cmdline() {
     c=""
 
@@ -436,7 +434,6 @@ post_process_cmdline() {
         enabled ${c} && enable_feature ${c##*_}s
     done
 }
-
 
 process_targets() {
     enabled child || write_common_config_banner
@@ -581,7 +578,6 @@ EOF
 
     check_header vpx/vpx_integer.h -I${source_path} && enable_feature vpx_ports
 }
-
 process_toolchain() {
     process_common_toolchain
 
@@ -615,7 +611,6 @@ process_toolchain() {
         # would be needed to apply this only to test/*.cc.
         check_cflags -Wshorten-64-to-32 && add_cflags_only -Wshorten-64-to-32
     fi
-
     if enabled icc; then
         enabled werror && check_add_cflags -Werror
         check_add_cflags -Wall
@@ -625,7 +620,6 @@ process_toolchain() {
         # in favor of deterministic output WRT to other compilers
         add_cflags -fp-model precise
     fi
-
     # Enable extra, harmless warnings. These might provide additional insight
     # to what the compiler is doing and why, but in general, but they shouldn't
     # be treated as fatal, even if we're treating warnings as errors.
@@ -668,7 +662,6 @@ process_toolchain() {
              INLINE="__inline"
         ;;
     esac
-
     # Other toolchain specific defaults
     case $toolchain in x86*) soft_enable postproc;; esac
 
