@@ -1,0 +1,36 @@
+autom4te.cache
+config.h.in~
+.*.swp
+.classpath
+.autotools
+.cproject
+.project
+.settings
+.DS_Store
+target
+Makefile
+config.log
+config.status
+libtool
+/mvn*.out
+/*/mvn*.out
+/*/test.log
+.libs/
+*.lo
+*.o
+*.la
+*_CXXRunner.cpp
+io.humble.*
+/.vagrant
+/humble-video-stage/humble-video-arch-*/target
+
+# Python generate byte code should not be checked in
+*.pyc
+.rake_test_cache
+
+###
+# Ignore Chef key files and secrets
+###
+.chef/*.pem
+.chef/encrypted_data_bag_secret
+.idea

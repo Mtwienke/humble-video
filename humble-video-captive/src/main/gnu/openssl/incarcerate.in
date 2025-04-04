@@ -7,6 +7,8 @@ exec_prefix="@exec_prefix@"
 HOST_OS="@HOST_OS@"
 CROSS_COMPILE="@VS_CROSS_PREFIX@"
 
+echo "@HOST_OS@"
+
 OPENSSL_CONFIG=
 # OpenSSL does not follow the GNU conventions and so we
 # do minimal translation here.  This will only be used
@@ -28,7 +30,7 @@ case $HOST_OS in
   ;;
   *darwin*)
     case $HOST_OS in
-      *arm*)
+      *arm* | *aarch64*)
       OPENSSL_CONFIG=darwin64-arm64-cc
       ;;
       *x86_64*)
@@ -38,7 +40,7 @@ case $HOST_OS in
       OPENSSL_CONFIG=darwin-ppc-cc
       ;;
       *)
-      OPENSSL_CONFIG=darwin-i386-cc
+      OPENSSL_CONFIG=darwin-i386-cc-again
       ;;
     esac
   ;;
@@ -77,7 +79,7 @@ LDFLAGS="-L@libdir@ @LDFLAGS@" \
 CPPFLAGS="@CPPFLAGS@" \
 CXXFLAGS="@CXXFLAGS@" \
 ASFLAGS="@ASFLAGS@" \
-PATH="$PATH:@abs_top_builddir@@bindir@@" sh "@abs_builddir@/csrc/Configure" \
+PATH="$PATH:@abs_top_builddir@@bindir@@" perl "@abs_builddir@/csrc/Configure" \
   ${OPENSSL_CONFIG} no-shared zlib -fPIC ${OPENSSL_FLAGS} \
   --cross-compile-prefix="${CROSS_COMPILE}" \
   --openssldir=${prefix} \
@@ -90,7 +92,7 @@ LDFLAGS="-L@libdir@ @LDFLAGS@" \
 CPPFLAGS="@CPPFLAGS@" \
 CXXFLAGS="@CXXFLAGS@" \
 ASFLAGS="@ASFLAGS@" \
-PATH="$PATH:@abs_top_builddir@@bindir@@" sh "@abs_builddir@/csrc/Configure" \
+PATH="$PATH:@abs_top_builddir@@bindir@@" perl "@abs_builddir@/csrc/Configure" \
   ${OPENSSL_CONFIG} no-shared zlib -fPIC ${OPENSSL_FLAGS} \
   --cross-compile-prefix="${CROSS_COMPILE}" \
   --openssldir=${prefix} \
