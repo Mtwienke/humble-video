@@ -17,6 +17,9 @@
 
   <modules>
     <module>
+      humble-video-arch-arm64-apple-darwin18
+    </module>
+    <module>
       humble-video-arch-x86_64-apple-darwin18
     </module>
     <module>

@@ -251,8 +251,9 @@ class JNIManifest {
     final JNIEnv.CPUArch javaArch;
     final JNIEnv.CPUArch nativeArch;
     final String nativeCpu = aNativeCpu.toLowerCase();
-    
-    javaArch = JNIEnv.getEnv().getCPUArch();
+    javaArch = JNIEnv.getEnv().getCPUArch();    
+    System.out.println("Java arch = " + javaArch);
+    System.out.println("native arch = " + nativeCpu);
     if (nativeCpu.startsWith("universal"))
       // a special case where the native library claims to not care about arch.
       // this only happens on Mac/Darwin with universal builds.

@@ -20919,6 +20919,15 @@ case "$host_os" in
 printf "%s\n" "$as_me: macOS detected — stripping X11/XCB symbols from FFMPEG_LIBS" >&6;}
     FFMPEG_LIBS=`echo "$FFMPEG_LIBS" | sed 's/-lX^ *//g'`
     FFMPEG_LIBS=`echo "$FFMPEG_LIBS" | sed 's/-lxcb^ *//g'`
+
+    # Also clean LDFLAGS & LIBS directly
+    LDFLAGS=`echo "$LDFLAGS" | sed 's/-lX^ *//g'`
+    LIBS=`echo "$LIBS" | sed 's/-lX^ *//g'`
+    LDFLAGS=`echo "$LDFLAGS" | sed 's/-lxcb^ *//g'`
+    LIBS=`echo "$LIBS" | sed 's/-lxcb^ *//g'`
+
+
+
     ;;
 esac
 

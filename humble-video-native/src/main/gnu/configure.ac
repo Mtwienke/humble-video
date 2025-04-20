@@ -27,6 +27,16 @@ CFLAGS="${CFLAGS}"
 CXXFLAGS="${CXXFLAGS}"
 LDFLAGS="${LDFLAGS}"
 ASFLAGS="${ASFLAGS}"
+
+# Map aarch64 to arm64 on Apple Silicon
+orig_host=$host
+case "$host" in
+  aarch64-apple-darwin*)
+    host="arm64-apple-darwin"
+    echo "INFO: Remapping host from $orig_host to $host for consistency"
+    ;;
+esac
+
 case $host_os in
   *linux*)
   case $host_cpu in
