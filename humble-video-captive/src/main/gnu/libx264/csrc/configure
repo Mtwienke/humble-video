@@ -399,8 +399,21 @@ CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON BEOSTHREAD POSIXT
              MSA MMAP WINRT VSX ARM_INLINE_ASM STRTOK_R BITDEPTH8 BITDEPTH10"
 
 # parse options
+echo "----- parsing these options now: $opt -----"
+echo "----- asm equals $asm -----"
+echo "----- aarch equals $ARCH -----"
+if [ "$asm" = "no" ]; then  
+  echo "in if asm = no, shouldnt happen"
+  if [ "$ARCH" = "AARCH64" ]; then
+    echo "WARNING: --disable-asm ignored for AARCH64, forcing asm=auto"
+    asm="auto"
+  else
+    asm="no"
+  fi
+fi
 
 for opt do
+  echo "in for opt"
     optarg="${opt#*=}"
     case "$opt" in
         --prefix=*)
@@ -431,7 +444,12 @@ for opt do
             static="yes"
             ;;
         --disable-asm)
-            asm="no"
+            if [ "$ARCH" = "AARCH64" ]; then
+              echo "WARNING: --disable-asm ignored for AARCH64, forcing asm=auto"
+              asm="auto"
+            else
+              asm="no"
+            fi
             ;;
         --disable-interlaced)
             interlaced="no"
@@ -530,6 +548,14 @@ done
 
 [ "$cli" = "no" -a "$shared" = "no" -a "$static" = "no" ] && die "Nothing to build. Enable cli, shared or static."
 
+#checking if it works like this, for debug version on apple silicon
+define HAVE_NEON
+define HAVE_ARM_INLINE_ASM
+
+echo "------------ defined HAVE NEON and HAVE_ARM_INLINE_ASM --------------------"
+log_msg "------------ defined HAVE NEON and HAVE_ARM_INLINE_ASM --------------------"
+echo "asm is $asm after definitions for  NEON and INLINE ASM"
+
 CC="${CC-${cross_prefix}gcc}"
 STRIP="${STRIP-${cross_prefix}strip}"
 INSTALL="${INSTALL-install}"
@@ -566,6 +592,7 @@ log_msg "host_os (extract from config.sub): $host_os"
 
 trap 'rm -rf conftest*' EXIT
 
+echo "asm is $asm before host os stuff and after extracting host from config.sub"
 # test for use of compilers that require specific handling
 cc_base="$(basename "$CC")"
 QPRE="-"
@@ -629,13 +656,13 @@ else
         compiler=ICC
     fi
 fi
-
+echo "asm is $asm after setting host cpu to $host_os"
 if [ $compiler = GNU ]; then
     if cc_check '' -Werror=unknown-warning-option ; then
         CHECK_CFLAGS="$CHECK_CFLAGS -Werror=unknown-warning-option"
     fi
 fi
-
+echo "asm is $asm after checking compiler"
 libm=""
 case $host_os in
     beos*)
@@ -724,10 +751,12 @@ case $host_os in
         die "Unknown system $host, edit the configure"
         ;;
 esac
-
+echo "asm is $asm after setting libm to $libm"
 LDFLAGS="$LDFLAGS $libm"
 
 stack_alignment=4
+
+echo "asm is $asm, host cpu is $host_cpu"
 
 log_msg "host_cpu is $host_cpu"
 case $host_cpu in
@@ -981,8 +1010,9 @@ if [ "$asm" = auto -a "$ARCH" = ARM ] && [ "$ARCH" != "arm64" ] ; then
         exit 1
     fi
 fi
-
-if [ $asm = auto -a $ARCH = AARCH64 ] ; then
+echo "before aarch if, asm is (still?) $asm, checking for host_cpu, its $host_cpu and arch, its $ARCH"
+if { [ "$asm" = auto ] || [ "$asm" = yes ]; } && [ "$ARCH" = AARCH64 ]; then
+    define HAVE_ARM_INLINE_ASM
     if [ $compiler = CL ] && cpp_check '' '' 'defined(_M_ARM64)' ; then
         define HAVE_NEON
     elif [ "$SYS" = "MACOSX" ]; then
@@ -1020,6 +1050,8 @@ fi
 
 [ $asm = no ] && AS=""
 [ "x$AS" = x ] && asm="no" || asm="yes"
+
+echo "after redefinition, asm is $asm and AS is $AS"
 
 define ARCH_$ARCH
 define SYS_$SYS
@@ -1611,3 +1643,4 @@ mkdir -p common/{aarch64,arm,mips,ppc,x86} encoder extras filters/video input ou
 echo
 echo "You can run 'make' or 'make fprofiled' now."
 
+  

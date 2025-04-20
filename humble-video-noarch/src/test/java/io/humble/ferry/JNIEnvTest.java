@@ -50,6 +50,8 @@ public class JNIEnvTest
     assertEquals(JNIEnv.CPUArch.X86_64, JNIEnv.getCPUArch("amd64"));
     assertEquals(JNIEnv.CPUArch.PPC, JNIEnv.getCPUArch("PowerPC"));
     assertEquals(JNIEnv.CPUArch.PPC64, JNIEnv.getCPUArch("PowerPC64"));
-
+    assertEquals(JNIEnv.CPUArch.ARM64, JNIEnv.getCPUArch("aarch64"));
+    assertEquals(JNIEnv.CPUArch.ARM64, JNIEnv.getCPUArch("arm64"));
+    
   }
 }

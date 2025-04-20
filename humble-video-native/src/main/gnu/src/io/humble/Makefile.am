@@ -1,3 +1,4 @@
+AM_CPPFLAGS = $(FFMPEG_CFLAGS)
 VS_CPP_PATH=io/humble
 VS_CPP_PACKAGE=io.humble
 VS_CPP_NAMESPACE=io::humble
@@ -21,8 +22,9 @@ libhumblevideo_la_SOURCES = HumbleVideo.c
 libhumblevideo_la_LIBADD = \
   $(builddir)/ferry/libhumble-ferry.la \
   $(builddir)/video/customio/libhumble-video-customio.la \
-  $(builddir)/video/libhumble-video.la
-
+  $(builddir)/video/libhumble-video.la \
+  $(FFMPEG_LIBS)
+	
 # But because we're forcing C linkage, we need to tell the linker
 # about which STDCXX and which exception handling library to use.
 libhumblevideo_la_LDFLAGS = \

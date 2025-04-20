@@ -13,8 +13,11 @@
 ##
 
 #source_path="`dirname \"$0\"`"
+echo "before source of configure.sh"
 source_path=${0%/*}
 . "${source_path}/build/make/configure.sh"
+
+echo "after source of configure.sh"
 
 show_help(){
     show_help_pre
@@ -164,7 +167,7 @@ all_platforms="${all_platforms} generic-gnu"
 # all_targets is a list of all targets that can be configured
 # note that these should be in dependency order for now.
 all_targets="libs examples tools docs"
-
+echo "after all platforms and targets"
 # all targets available are enabled, by default.
 for t in ${all_targets}; do
     [ -f "${source_path}/${t}.mk" ] && enable_feature ${t}
@@ -209,6 +212,8 @@ enabled doxygen && enable_feature install_docs
 enable_feature install_bins
 enable_feature install_libs
 
+echo "after install bins and libs"
+
 enable_feature static
 enable_feature optimizations
 enable_feature dependency_tracking
@@ -216,6 +221,8 @@ enable_feature spatial_resampling
 enable_feature multithread
 enable_feature os_support
 enable_feature temporal_denoising
+
+echo "after enabling all stuff"
 
 CODECS="
     vp8_encoder
@@ -392,6 +399,9 @@ CMDLINE_SELECT="
     experimental
     always_adjust_bpm
 "
+    
+echo "after variable definitions"
+
 process_cmdline() {
     for opt do
         optval="${opt#*=}"
@@ -510,6 +520,7 @@ EOF
 }
 
 process_detect() {
+  echo "in process detect"
     if enabled shared; then
         # Can only build shared libs on a subset of platforms. Doing this check
         # here rather than at option parse time because the target auto-detect
@@ -517,6 +528,7 @@ process_detect() {
         case "${tgt_os}" in
         linux|os2|darwin*|iphonesimulator*)
             # Supported platforms
+            echo "target seems to be supported"
             ;;
         *)
             if enabled gnu; then
@@ -728,13 +740,15 @@ EOF
         die "Requested extra CXXFLAGS '${extra_cxxflags}' not supported by compiler"
     fi
 }
-
+echo "after definitions"
 
 ##
 ## END APPLICATION SPECIFIC CONFIGURATION
 ##
 CONFIGURE_ARGS="$@"
+echo "Configure args are $CONFIGURE_ARGS"
 process "$@"
+echo "after process"
 print_webm_license ${BUILD_PFX}vpx_config.c "/*" " */"
 cat <<EOF >> ${BUILD_PFX}vpx_config.c
 #include "vpx/vpx_codec.h"

@@ -47,6 +47,8 @@ EncoderTest::testCreation() {
   Logger::setGlobalIsLogging(Logger::LEVEL_TRACE, false);
 
   RefPointer<Codec> codec = Codec::findEncodingCodec(Codec::CODEC_ID_H264);
+  TS_ASSERT_DIFFERS(codec.value(), nullptr); // Ensure codec was found
+
   RefPointer<Encoder> encoder = Encoder::make(codec.value());
   TS_ASSERT(encoder);
 }

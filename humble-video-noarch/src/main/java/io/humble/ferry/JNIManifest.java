@@ -38,6 +38,7 @@ class JNIManifest {
   private final static String HUMBLE_BUNDLES="Humble-Native-Bundles";
   
   enum CPUArch{
+    ARM64,
     X86,
     X86_64,
     PPC,

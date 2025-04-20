@@ -39,6 +39,11 @@ case $host_os in
   ;;
   *darwin*)
   case $host_cpu in
+     *arm64*|*aarch64*)
+     CFLAGS="-arch arm64 ${CFLAGS}"
+     CXXFLAGS="-arch arm64 ${CXXFLAGS}"
+     LDFLAGS="-arch arm64 ${LDFLAGS}"
+     ;;
      *x86_64*|*amd64*)
      CFLAGS="-arch x86_64 ${CFLAGS}"
      CXXFLAGS="-arch x86_64 ${CXXFLAGS}"
@@ -133,6 +138,49 @@ fi
 AC_SUBST(VS_MVN_HOST)
 
 PKG_PROG_PKG_CONFIG
+
+# On macOS ARM, prevent linking to XCB
+case "$host_os" in
+  *darwin*)
+    AC_MSG_NOTICE([macOS detected — stripping -lxcb from linker flags])
+    
+    # Strip -lxcb manually
+    STRIP_XCB_FROM_FLAGS
+    ;;
+esac
+
+# Define the macro once
+AC_DEFUN([STRIP_XCB_FROM_FLAGS], [
+  saved_libs="$LIBS"
+  saved_ldflags="$LDFLAGS"
+  LIBS=`echo "$LIBS" | sed 's/-lxcb//g'`
+  LDFLAGS=`echo "$LDFLAGS" | sed 's/-lxcb//g'`
+  AC_SUBST([LIBS])
+  AC_SUBST([LDFLAGS])
+])
+
+PKG_CHECK_MODULES([FFMPEG], [libavcodec libavutil libavformat libavfilter libswresample libswscale])
+AC_SUBST([FFMPEG_CFLAGS])
+AC_SUBST([FFMPEG_LIBS])
+
+# On macOS, strip any accidental X11/XCB leftovers (from transitive deps)
+case "$host_os" in
+  *darwin*)
+    AC_MSG_NOTICE([macOS detected — stripping X11/XCB symbols from FFMPEG_LIBS])
+    FFMPEG_LIBS=`echo "$FFMPEG_LIBS" | sed 's/-lX[^ ]*//g'`
+    FFMPEG_LIBS=`echo "$FFMPEG_LIBS" | sed 's/-lxcb[^ ]*//g'`
+    
+    # Also clean LDFLAGS & LIBS directly
+    LDFLAGS=`echo "$LDFLAGS" | sed 's/-lX[^ ]*//g'`
+    LIBS=`echo "$LIBS" | sed 's/-lX[^ ]*//g'`
+    LDFLAGS=`echo "$LDFLAGS" | sed 's/-lxcb[^ ]*//g'`
+    LIBS=`echo "$LIBS" | sed 's/-lxcb[^ ]*//g'`
+    
+    AC_SUBST([LDFLAGS])
+    AC_SUBST([LIBS])
+    ;;
+esac
+
 AC_PATH_PROG([SWIG],[swig])
 AC_ARG_VAR(SWIG,
            [Location of the 'swig' program; if found, then we will renerate the Java interface to Humble Software from the C++ interface])

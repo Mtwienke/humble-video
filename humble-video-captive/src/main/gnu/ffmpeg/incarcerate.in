@@ -29,6 +29,16 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-shared"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pic"
 #FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-runtime-cpudetect"
 
+# Disable GUI/X11 stuff for headless and portable builds
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-xlib"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-libxcb"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-libxcb-shm"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-libxcb-xfixes"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-indev=xcbgrab"
+#FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-sdl2"
+#FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-ffplay"
+
+
 if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-gpl --enable-nonfree"
   # x264 can only be used in GPL mode
@@ -50,14 +60,15 @@ case $HOST_OS in
 esac
 if [ "@VS_CROSS_COMPILE@" = "1" ]; then
   FFMPEG_OPTIONS="${FFMPEG_OPTIONS} --enable-cross-compile --cross-prefix=@VS_CROSS_PREFIX@ --arch=${HOST_CPU} --target-os=${HOST_OS_C}"
-  # Override the cross setting for PKG-CONFIG since that is not usually set up to
-  # be cross-compile friendly
-  if ! "@VS_CROSS_PREFIX@pkg-config" --version > /dev/null 2>&1; then
-    # default to pkg-config WITHOUT a prefix; we don't really care since
-    # we're faking out pkg-config anyway
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --pkg-config=pkg-config"
-  fi
+  
+  # Ensure pkg-config is set correctly to find our custom-built native libs
+  export PKG_CONFIG_PATH="${exec_prefix}/lib/pkgconfig"
+  FFMPEG_OPTIONS="${FFMPEG_OPTIONS} --pkg-config=pkg-config"
+  
+  echo "PKG_CONFIG_PATH set to: ${PKG_CONFIG_PATH}"
+  echo "FFMPEG will use pkg-config to locate libvpx and other libraries"
 fi
+
 
 if test ! "x$VS_DEBUG" = "x"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
@@ -97,6 +108,12 @@ chmod -R u+w @abs_builddir@/csrc/*
 # apply all the patches
 echo "Applying patches to @abs_builddir@/csrc/src"
 (cd @abs_builddir@/csrc && for f in @abs_srcdir@/patches/*; do echo "patch -p1 <$f"; patch -p1 <$f; done)
+echo "------ DEBUG PKG_CONFIG ------"
+which pkg-config
+pkg-config --modversion vpx || echo "Failed to query libvpx via pkg-config"
+pkg-config --cflags vpx || echo "Failed to get cflags"
+pkg-config --libs vpx || echo "Failed to get libs"
+echo "------------------------------"
 
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
 cd @abs_builddir@/csrc

@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="/usr/local"
+exec_prefix="${prefix}"
+CPPFLAGS=""
+LDFLAGS="-arch arm64 "
+CFLAGS="-arch arm64 -g -O2"
+HOST_TYPE=Mac
+HOST_OS=aarch64-apple-darwin24.4.0
+
+if [ "" = "1" ]; then
+  CROSS="--host ${HOST_OS}"
+else
+  CROSS=
+fi
+VS_DEBUG=
+
+if test ! "x$VS_DEBUG" = "x"; then
+  CFLAGS="-DLIBSPANDSP_EXPORTS=1 -g -O0 -arch arm64 -g -O2"
+  echo "Creating debug version of spandsp: ${VS_DEBUG}; ${CFLAGS}"
+else
+  CFLAGS="-DLIBSPANDSP_EXPORTS=1 -g -O2 -arch arm64 -g -O2"
+  echo "Creating release version of spandsp: ${VS_DEBUG}; ${CFLAGS}"
+fi
+export ac_cv_func_malloc_0_nonnull=yes
+export ac_cv_func_realloc_0_nonnull=yes
+LDFLAGS="-L${exec_prefix}/lib -arch arm64 " 
+LIBS=-lz
+case ${HOST_OS} in
+  *mingw*|*cygwin*)
+  LIBS="-lws2_32 -lmingw32 -lmingwex ${LIBS}"
+  ;;
+esac
+export LIBS
+
+LIBS="${LIBS}" \
+CC="gcc" \
+CFLAGS="-I${prefix}/include $CFLAGS" \
+LD="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" \
+LDFLAGS="${LDFLAGS}"
+CPP="@CPP@" \
+CPPFLAGS="" \
+CXX="g++" \
+CXXFLAGS="-arch arm64 " \
+NM="/usr/bin/nm -B" \
+AS="as" \
+ASFLAGS="" \
+STRIP="strip" \
+RANLIB="ranlib" \
+AR="ar" \
+DLLTOOL="false" \
+PATH="$PATH:/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu${exec_prefix}/bin@" sh /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/spandsp/csrc/configure \
+  ${CROSS} \
+  --disable-shared \
+  --with-pic \
+  --prefix="${prefix}" || \
+  (echo "Could not configure library: \"/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/spandsp\"; you may want to try disabling it or installing your own version" && exit 1)

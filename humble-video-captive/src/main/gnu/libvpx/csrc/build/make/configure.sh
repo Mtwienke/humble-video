@@ -620,7 +620,9 @@ process_common_cmdline() {
 }
 
 process_cmdline() {
+  echo "in process_cmdline"
   for opt do
+    echo "in for loop of process_cmdline"
     optval="${opt#*=}"
     case "$opt" in
       *)
@@ -689,11 +691,13 @@ check_xcode_minimum_version() {
 }
 
 process_common_toolchain() {
+  echo "process_common_toolchain started"
   if [ -z "$toolchain" ]; then
     gcctarget="${CHOST:-$(gcc -dumpmachine 2> /dev/null)}"
+    echo "gcctarget = $gcctarget"
     # detect tgt_isa
     case "$gcctarget" in
-      aarch64*)
+      aarch64* | arm64*)
         tgt_isa=arm64
         ;;
       armv7*-hardfloat* | armv7*-gnueabihf | arm-*-gnueabihf)
@@ -782,8 +786,10 @@ process_common_toolchain() {
       toolchain=${tgt_isa}-${tgt_os}-gcc
     fi
   fi
+  echo "tgt_isa = $tgt_isa, tgt_os = $tgt_os"
 
   toolchain=${toolchain:-generic-gnu}
+  echo "toolchain = $toolchain"
 
   is_in ${toolchain} ${all_platforms} || enabled force_toolchain \
     || die "Unrecognized toolchain '${toolchain}'"
@@ -806,6 +812,7 @@ process_common_toolchain() {
   case ${tgt_isa} in
     arm*)
       enable_feature arm
+      echo "enabled arm"
       ;;
     mips*)
       enable_feature mips
@@ -814,6 +821,7 @@ process_common_toolchain() {
       enable_feature ppc
       ;;
   esac
+  echo "enabled architecture family (hopefully)"
 
   # PIC is probably what we want when building shared libs
   enabled shared && soft_enable pic
@@ -827,16 +835,17 @@ process_common_toolchain() {
     IOS_VERSION_OPTIONS=""
     IOS_VERSION_MIN="6.0"
   fi
-
+  
+  echo "after if enabled shared"
   # Handle darwin variants. Newer SDKs allow targeting older
   # platforms, so use the newest one available.
   case ${toolchain} in
     arm*-darwin*)
-      add_cflags "-miphoneos-version-min=${IOS_VERSION_MIN}"
-      iphoneos_sdk_dir="$(show_darwin_sdk_path iphoneos)"
-      if [ -d "${iphoneos_sdk_dir}" ]; then
-        add_cflags  "-isysroot ${iphoneos_sdk_dir}"
-        add_ldflags "-isysroot ${iphoneos_sdk_dir}"
+      osx_sdk_dir="$(show_darwin_sdk_path macosx)"
+      echo "osx_sdk_dir = $osx_sdk_dir"
+      if [ -d "${osx_sdk_dir}" ]; then
+        add_cflags  "-mmacosx-version-min=10.13 -isysroot ${osx_sdk_dir}"
+        add_ldflags "-mmacosx-version-min=10.13 -isysroot ${osx_sdk_dir}"
       fi
       ;;
     x86*-darwin*)
@@ -909,9 +918,10 @@ process_common_toolchain() {
   # Process ARM architecture variants
   case ${toolchain} in
     arm*)
+      echo "in case toolchain arm"
       # on arm, isa versions are supersets
       case ${tgt_isa} in
-        arm64|armv8)
+        arm64*|armv8)
           soft_enable neon
           ;;
         armv7|armv7s)
@@ -926,11 +936,13 @@ process_common_toolchain() {
       esac
 
       asm_conversion_cmd="cat"
-
+      echo "tgt_cc = $tgt_cc"
       case ${tgt_cc} in
         gcc)
           link_with_cc=gcc
+          echo "after gnu toolchain"
           setup_gnu_toolchain
+          echo "after gnu toolchain"
           arch_int=${tgt_isa##armv}
           arch_int=${arch_int%%te}
           check_add_asflags --defsym ARCHITECTURE=${arch_int}
@@ -957,6 +969,7 @@ EOF
             check_add_cflags -march=${tgt_isa}
             check_add_asflags -march=${tgt_isa}
           fi
+          echo "after ifs"
 
           enabled debug && add_asflags -g
           asm_conversion_cmd="${source_path}/build/make/ads2gas.pl"
@@ -965,6 +978,7 @@ EOF
             check_add_cflags -mthumb
             check_add_asflags -mthumb -mimplicit-it=always
           fi
+          echo "end of case gcc"
           ;;
         vs*)
           asm_conversion_cmd="${source_path}/build/make/ads2armasm_ms.pl"
@@ -1013,7 +1027,7 @@ EOF
           add_cflags --wchar32
           ;;
       esac
-
+      echo  "tgt_os = $tgt_os"
       case ${tgt_os} in
         none*)
           disable_feature multithread
@@ -1069,35 +1083,55 @@ EOF
           ;;
 
         darwin*)
-          XCRUN_FIND="xcrun --sdk iphoneos --find"
-          CXX="$(${XCRUN_FIND} clang++)"
-          CC="$(${XCRUN_FIND} clang)"
-          AR="$(${XCRUN_FIND} ar)"
-          AS="$(${XCRUN_FIND} as)"
-          STRIP="$(${XCRUN_FIND} strip)"
-          NM="$(${XCRUN_FIND} nm)"
-          RANLIB="$(${XCRUN_FIND} ranlib)"
+          case ${toolchain} in
+            *-iphonesimulator-*|*-ios-*|*-iphoneos-*)
+              echo "⛔ configuring for iOS"
+              XCRUN_FIND="xcrun --sdk iphoneos --find"
+              CXX="$(${XCRUN_FIND} clang++)"
+              CC="$(${XCRUN_FIND} clang)"
+              AR="$(${XCRUN_FIND} ar)"
+              AS="$(${XCRUN_FIND} as)"
+              STRIP="$(${XCRUN_FIND} strip)"
+              NM="$(${XCRUN_FIND} nm)"
+              RANLIB="$(${XCRUN_FIND} ranlib)"
+              # ASFLAGS is written here instead of using check_add_asflags
+              # because we need to overwrite all of ASFLAGS and purge the
+              # options that were put in above
+              ASFLAGS="-arch ${tgt_isa} -g"
+              
+              add_cflags -arch ${tgt_isa}
+              add_ldflags -arch ${tgt_isa}
+              echo "adding variables"
+              alt_libc="$(show_darwin_sdk_path iphoneos)"
+              if [ -d "${alt_libc}" ]; then
+                add_cflags -isysroot ${alt_libc}
+              fi
+              
+              if [ "${LD}" = "${CXX}" ]; then
+                add_ldflags -miphoneos-version-min="${IOS_VERSION_MIN}"
+              else
+                add_ldflags -ios_version_min "${IOS_VERSION_MIN}"
+              fi
+
+            ;;
+            *)
+              echo "✅ configuring for macOS (native)"
+              XCRUN_FIND='xcrun --sdk macosx --find'
+              CXX=$(xcrun --sdk macosx --find clang++)
+              CC=$(xcrun --sdk macosx --find clang)
+              AR=$(xcrun --sdk macosx --find ar)
+              AS=$(xcrun --sdk macosx --find as)
+              STRIP=$(xcrun --sdk macosx --find strip)
+              NM=$(xcrun --sdk macosx --find nm)
+              RANLIB=$(xcrun --sdk macosx --find ranlib)
+            ;;
+          esac
+
+          echo "in darwin"
+          
           AS_SFX=.S
           LD="${CXX:-$(${XCRUN_FIND} ld)}"
 
-          # ASFLAGS is written here instead of using check_add_asflags
-          # because we need to overwrite all of ASFLAGS and purge the
-          # options that were put in above
-          ASFLAGS="-arch ${tgt_isa} -g"
-
-          add_cflags -arch ${tgt_isa}
-          add_ldflags -arch ${tgt_isa}
-
-          alt_libc="$(show_darwin_sdk_path iphoneos)"
-          if [ -d "${alt_libc}" ]; then
-            add_cflags -isysroot ${alt_libc}
-          fi
-
-          if [ "${LD}" = "${CXX}" ]; then
-            add_ldflags -miphoneos-version-min="${IOS_VERSION_MIN}"
-          else
-            add_ldflags -ios_version_min "${IOS_VERSION_MIN}"
-          fi
 
           for d in lib usr/lib usr/lib/system; do
             try_dir="${alt_libc}/${d}"
@@ -1124,6 +1158,7 @@ EOF
             check_add_asflags -fembed-bitcode
             check_add_ldflags -fembed-bitcode
           fi
+          echo "end of case darwin"
           ;;
 
         linux*)
@@ -1150,8 +1185,10 @@ EOF
           fi
           ;;
       esac
+      echo "end of cases"
       ;;
     mips*)
+      echo "in mips"
       link_with_cc=gcc
       setup_gnu_toolchain
       tune_cflags="-mtune="
@@ -1196,11 +1233,13 @@ EOF
       check_add_asflags -KPIC
       ;;
     ppc*)
+      echo "pcc"
       link_with_cc=gcc
       setup_gnu_toolchain
       check_gcc_machine_option "vsx"
       ;;
     x86*)
+      echo "x86"
       case  ${tgt_os} in
         win*)
           enabled gcc && add_cflags -fno-common
@@ -1277,6 +1316,7 @@ EOF
           esac
           ;;
       esac
+      echo "after cases 2"
 
       bits=32
       enabled x86_64 && bits=64
@@ -1285,6 +1325,7 @@ EOF
 #error "not x32"
 #endif
 EOF
+      echo "huhu"
       case ${tgt_cc} in
         gcc*)
           add_cflags -m${bits}
@@ -1399,6 +1440,7 @@ EOF
       setup_gnu_toolchain
       ;;
   esac
+  echo "after cases?"
 
   # Try to enable CPU specific tuning
   if [ -n "${tune_cpu}" ]; then
@@ -1414,7 +1456,7 @@ EOF
       log_echo "Warning: CPU tuning not supported by this toolchain"
     fi
   fi
-
+echo "after tuning"
   if enabled debug; then
     check_add_cflags -g && check_add_ldflags -g
   else
@@ -1456,6 +1498,7 @@ EOF
     check_cc <<EOF && INLINE="inline"
 static inline function() {}
 EOF
+  
 
   # Almost every platform uses pthreads.
   if enabled multithread; then
@@ -1470,7 +1513,7 @@ EOF
         ;;
     esac
   fi
-
+echo "before mips platforms"
   # only for MIPS platforms
   case ${toolchain} in
     mips*)
@@ -1496,10 +1539,13 @@ EOF
     add_cflags -D_LARGEFILE_SOURCE
     add_cflags -D_FILE_OFFSET_BITS=64
   fi
+  echo "end of process_common_toolchain"
 }
 
 process_toolchain() {
+  echo "start of process_toolchain"
   process_common_toolchain
+  echo "end of process_toolchain"
 }
 
 print_config_mk() {
@@ -1572,8 +1618,11 @@ enable_feature logging
 logfile="config.log"
 self=$0
 process() {
+  echo "in process"
   cmdline_args="$@"
+  echo  "after args: $@"
   process_cmdline "$@"
+  echo "after process cmdline"
   if enabled child; then
     echo "# ${self} $@" >> ${logfile}
   else
@@ -1581,9 +1630,13 @@ process() {
   fi
   post_process_common_cmdline
   post_process_cmdline
+  echo  "--- post_process_cmdline"
   process_toolchain
+  echo "--- process_toolchain completed ---"
   process_detect
+  echo "--- process_detect completed ---"
   process_targets
+  echo "--- process_targets completed ---"
 
   OOT_INSTALLS="${OOT_INSTALLS}"
   if enabled source_path_used; then

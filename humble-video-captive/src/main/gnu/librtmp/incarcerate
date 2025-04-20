@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="/usr/local"
+exec_prefix="${prefix}"
+HOST_TYPE=Mac
+HOST_OS=aarch64-apple-darwin24.4.0
+
+if [ "" = "1" ]; then
+  CROSS="--host ${HOST_OS}"
+else
+  CROSS=
+fi
+
+# LIBRARY doesn't support VPATH builds, so we fake it
+echo "Copying /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc to /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc"
+# create the directory
+mkdir -p /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc
+# copy over all the source
+cp -r /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc/* /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc/
+# and make everything user writeable so distcheck will pass
+chmod -R u+w /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc/*
+
+# apply all the patches
+echo "Applying patches to /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc/src"
+(cd /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc/src && for f in /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/patches/*; do echo "patch -p1 <$f"; patch -p1 <$f; done)
+
+export PKG_CONFIG_PATH="${exec_prefix}/lib/pkgconfig"
+export PKG_CONFIG="pkg-config --static"
+
+CC="gcc" \
+CFLAGS="-O2 -I${prefix}/include -arch arm64 -g -O2" \
+LD="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" \
+LDFLAGS="-L${exec_prefix}/lib -arch arm64 " \
+CPP="gcc -E" \
+CPPFLAGS="" \
+CXX="g++" \
+CXXFLAGS="-arch arm64 " \
+NM="/usr/bin/nm -B" \
+AS="as" \
+ASFLAGS="" \
+STRIP="strip" \
+RANLIB="ranlib" \
+AR="ar" \
+DLLTOOL="false" \
+PATH="$PATH:/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu${exec_prefix}/bin@" sh /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp/csrc/configure \
+  ${CROSS} \
+  --disable-shared \
+  --with-pic \
+  --prefix="${prefix}" || \
+  (echo "Could not configure library: \"/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/librtmp\"; you may want to try disabling it or installing your own version" && exit 1)

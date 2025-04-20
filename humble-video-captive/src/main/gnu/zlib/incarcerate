@@ -1,0 +1,66 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="/usr/local"
+HOST_OS="aarch64-apple-darwin24.4.0"
+CROSS_PREFIX=""
+
+# zlib does not support in-tree builds, and so we copy the entire source
+# directory to the build directory, and then build in place.
+echo "Copying /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc to /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc"
+# create the directory
+mkdir -p "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc"
+# copy over all the source
+cp -r "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc/"* "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc/"
+# and make everything user writeable so distcheck will pass
+chmod -R u+w "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc/"*
+
+# Check for 64 bit compiling
+FLAG64=
+case $HOST_OS in
+  *64*)
+    FLAG64="--64"
+  ;;
+esac
+
+prefix="/usr/local"
+exec_prefix="${prefix}"
+libdir="${exec_prefix}/lib"
+includedir="${prefix}/include"
+mandir="${prefix}/share/man"
+case $HOST_OS in
+  *mingw*)
+  # windows build requires special make instructions which will be done
+  # from Makefile.am
+  cp "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc/win32/Makefile.gcc" "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc/Makefile"
+  ;;
+  *)
+  CHOST="aarch64-apple-darwin24.4.0" \
+  CC="gcc" \
+  CFLAGS="-fPIC -I${prefix}/include -arch arm64 -g -O2" \
+  LD="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" \
+  LDFLAGS="-fPIC -L${exec_prefix}/lib -arch arm64 " \
+  CPP="@CPP@" \
+  CPPFLAGS="" \
+  CXX="g++" \
+  CXXFLAGS="-arch arm64 " \
+  NM="/usr/bin/nm -B" \
+  AS="as" \
+  ASFLAGS="" \
+  STRIP="strip" \
+  RANLIB="ranlib" \
+  AR="ar" \
+  DLLTOOL="false" \
+  RC="windres" \
+  prefix="${prefix}" \
+  exec_prefix="${exec_prefix}" \
+  libdir="${libdir}" \
+  includedir="${includedir}" \
+  mandir="${mandir}" \
+  sh "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib/csrc/configure" ${FLAG64} \
+    --static \
+    --prefix="${prefix}" || \
+    (echo "Could not configure library: \"/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/zlib\"; you may want to try disabling it or installing your own version" && exit 1)
+  ;;
+esac

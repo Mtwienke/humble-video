@@ -1,0 +1,102 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="/usr/local"
+exec_prefix="${prefix}"
+HOST_OS="aarch64-apple-darwin24.4.0"
+CROSS_COMPILE=""
+
+echo "aarch64-apple-darwin24.4.0"
+
+OPENSSL_CONFIG=
+# OpenSSL does not follow the GNU conventions and so we
+# do minimal translation here.  This will only be used
+# when we are doing cross-compiling under our control
+# and we only support windows, linux and mac today
+# on the i386 or x86_64 architectures, so it's pretty
+# safe
+OPENSSL_FLAGS=
+case $HOST_OS in
+  *cygwin*|*mingw*)
+    case $HOST_OS in
+      *x86_64*)
+      OPENSSL_CONFIG=mingw64
+      ;;
+      *)
+      OPENSSL_CONFIG=mingw
+      ;;
+    esac
+  ;;
+  *darwin*)
+    case $HOST_OS in
+      *arm* | *aarch64*)
+      OPENSSL_CONFIG=darwin64-arm64-cc
+      ;;
+      *x86_64*)
+      OPENSSL_CONFIG=darwin64-x86_64-cc
+      ;;
+      *ppc*)
+      OPENSSL_CONFIG=darwin-ppc-cc
+      ;;
+      *)
+      OPENSSL_CONFIG=darwin-i386-cc-again
+      ;;
+    esac
+  ;;
+  *linux*)
+    case $HOST_OS in
+      *x86_64*)
+      OPENSSL_CONFIG=linux-x86_64
+      ;;
+      *64*)
+      OPENSSL_CONFIG=linux-generic64
+      ;;
+      *)
+      OPENSSL_CONFIG=linux-generic32
+      OPENSSL_FLAGS=-m32
+      ;;
+    esac
+  ;;
+esac
+
+# OpenSSL does not support in-tree builds, and so we copy the entire source
+# directory to the build directory, and then build in place.
+# copy over all the source
+if [ ! -f "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc/Configure" ]; then
+  echo "Copying /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc to /Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc"
+  # create the directory
+  mkdir -p "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc"
+  cp -r "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc/"* "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc/"
+  # and make everything user writeable so distcheck will pass
+  chmod -R u+w "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc/"*
+fi
+
+# We use the cross-compile setting for openssl but still pass through our
+# flags
+echo CFLAGS="-I${prefix}/include -arch arm64 -g -O2" \
+LDFLAGS="-L${exec_prefix}/lib -arch arm64 " \
+CPPFLAGS="" \
+CXXFLAGS="-arch arm64 " \
+ASFLAGS="" \
+PATH="$PATH:/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu${exec_prefix}/bin@" perl "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc/Configure" \
+  ${OPENSSL_CONFIG} no-shared zlib -fPIC ${OPENSSL_FLAGS} \
+  --cross-compile-prefix="${CROSS_COMPILE}" \
+  --openssldir=${prefix} \
+  --with-zlib-include="${prefix}/include" \
+  --with-zlib-lib="${exec_prefix}/lib" \
+  --prefix="${prefix}" 
+
+CFLAGS="-I${prefix}/include -arch arm64 -g -O2" \
+LDFLAGS="-L${exec_prefix}/lib -arch arm64 " \
+CPPFLAGS="" \
+CXXFLAGS="-arch arm64 " \
+ASFLAGS="" \
+PATH="$PATH:/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu${exec_prefix}/bin@" perl "/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl/csrc/Configure" \
+  ${OPENSSL_CONFIG} no-shared zlib -fPIC ${OPENSSL_FLAGS} \
+  --cross-compile-prefix="${CROSS_COMPILE}" \
+  --openssldir=${prefix} \
+  --with-zlib-include="${prefix}/include" \
+  --with-zlib-lib="${exec_prefix}/lib" \
+  --prefix="${prefix}" || \
+  (echo "Could not configure library: \"/Users/markuswienkemeier/Desktop/Uni/BA_neu/humble-video/humble-video-captive/src/main/gnu/openssl\"; you may want to try disabling it or installing your own version" && exit 1)

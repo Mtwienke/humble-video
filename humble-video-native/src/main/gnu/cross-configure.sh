@@ -22,6 +22,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 HOST=$( ${DIR}/mk/config.guess )
 
+# Normalize aarch64 to arm64 on Apple Silicon for consistency
+HOST=$(echo "$HOST" | sed 's/aarch64/arm64/')
+
+
 humble_configure()
 {
   BUILD=$2
@@ -51,7 +55,7 @@ case $HOST in
   *darwin*)
     # Darwin can only cross compile on Darwin, and only x86_64 as of November 2018
     for cross_os in \
-      x86_64-apple-darwin18
+      arm64-apple-darwin
       do
         humble_configure "${STAGE_DIR}" $cross_os
       done

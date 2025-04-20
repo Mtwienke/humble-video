@@ -33,6 +33,8 @@ public class JNIEnv
    *
    */
   enum CPUArch{
+    /** new for Apple Silicon */
+    ARM64,
     /** 32-bit systems such as the i386, i486, i586 or i686 */
     X86,
     /** 64-bit systems based on the x86 family */
@@ -91,7 +93,9 @@ public class JNIEnv
     final String javaCPUArch = javaCPU != null ? javaCPU.toLowerCase() : "";
     
     // first parse the java arch
-    if (javaCPUArch.startsWith("x86_64") ||
+      if (javaCPUArch.startsWith("aarch64") || javaCPUArch.startsWith("arm64")) {
+      javaArch = CPUArch.ARM64; // ✅ NEW
+    } else if  (javaCPUArch.startsWith("x86_64") ||
         javaCPUArch.startsWith("amd64") ||
         javaCPUArch.startsWith("ia64")) {
       javaArch = CPUArch.X86_64;
@@ -130,7 +134,9 @@ public class JNIEnv
     final String nativeCpu = gnuString.toLowerCase();
     final CPUArch nativeArch;
     // then the native arch
-    if (nativeCpu.startsWith("x86_64") ||
+    if (nativeCpu.startsWith("aarch64") || nativeCpu.startsWith("arm64")) // ✅ NEW
+        nativeArch = CPUArch.ARM64;
+    else if (nativeCpu.startsWith("x86_64") ||
         nativeCpu.startsWith("amd64") ||
         nativeCpu.startsWith("ia64"))
       nativeArch = CPUArch.X86_64;
